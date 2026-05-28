@@ -43,7 +43,7 @@ def get_prefix(bot, message):
     return pfx
 
 # ==========================================================
-# 💎 PREMIUM UI ARCHITECTURE
+# 💎 UI ARCHITECTURE (Verification & Help)
 # ==========================================================
 class VerifyButton(View):
     def __init__(self):
@@ -79,6 +79,7 @@ class HelpSelect(Select):
             discord.SelectOption(label="Music", emoji="🎵", value="music"),
             discord.SelectOption(label="Permit System", emoji="👑", value="permit"),
             discord.SelectOption(label="Pfp", emoji="🖼️", value="pfp"),
+            discord.SelectOption(label="Quarantine", emoji="☣️", value="quarantine"),
             discord.SelectOption(label="Reaction Roles", emoji="🔘", value="reactionroles"),
             discord.SelectOption(label="Ticketing", emoji="🎫", value="ticketing"),
             discord.SelectOption(label="Utility", emoji="🛠️", value="utility"),
@@ -94,28 +95,29 @@ class HelpSelect(Select):
         embed = discord.Embed(color=0x2b2d31)
         
         data = {
-            "antinuke": ("🛡️ Advanced Antinuke Protection", "An iron wall between your server and destructive nukers. Protect your server from unauthorized changes. Auto-detection for bans, kicks, role updates, and channel deletion. Lightning-fast detection and instant countermeasures ensure no threat ever gets past BADNAM."),
-            "automod": ("🤖 Intelligent AutoMod", "Intelligent automation that filters spam, bad words, invites, caps, toxicity, and rule-breakers in real time. Keep your chat spotless without lifting a finger."),
-            "automations": ("🔗 Automations", "Automate repetitive server tasks with fully customizable triggers and actions so your server runs like a well-oiled machine, 24/7."),
-            "autoresponder": ("🤍 AutoResponder", "Set up smart, instant replies to common triggers and keywords. Set up custom triggers and responses to automate FAQs. BADNAM responds so you don’t have to."),
-            "customroles": ("🎭 Custom Roles", "Create, manage, and assign roles with pinpoint precision tailored exactly the way you want them."),
-            "dating": ("💖 Dating", "Spark real connections within your community through interactive dating and profile features built for engagement."),
-            "fun": ("🎲 Fun & Games", "A massive arsenal of games, challenges, and entertainment commands. Boredom doesn’t stand a chance."),
-            "general": ("🌐 General Commands", "All the essential tools you need for smooth and seamless everyday server interaction right at your fingertips."),
-            "giveaways": ("🎁 Giveaways & Events", "Run flawless giveaways with requirements, rerolls, winner selection, automated ending systems, and logging making every event truly memorable."),
-            "leaderboard": ("🏆 Leaderboard", "Track activity and rank members server-wide turning engagement into an exciting ongoing competition."),
-            "logging": ("📜 Logging", "Razor-sharp detailed logs of every server event giving you complete visibility and total oversight at all times."),
-            "moderation": ("🔨 Powerful Moderation", "A powerhouse suite of 60+ commands for serious community management. Comprehensive moderation suite with logs, case management, strict punishment systems, and warnings handled with surgical precision."),
-            "music": ("🎵 High Quality Music", "Crystal-clear high-fidelity music playback with seamless queue management and lag-free streaming. Supports filters, playlists, and custom volume controls. Let BADNAM set the perfect vibe."),
-            "permit": ("👑 Permit System", "Granular role-based permission control like never before putting the right power in the right hands always."),
-            "pfp": ("🖼️ Profile Pictures (Pfp)", "Let members showcase and manage their avatars and social profiles effortlessly within the server."),
-            "reactionroles": ("🔘 Reaction Roles", "Self-role assignment with a single reaction. Fast, clean, and completely effortless for every member."),
-            "ticketing": ("🎫 Ticketing System", "Organize support with advanced panels, transcripts, internal logging, and customizable categories built for servers that mean business."),
-            "utility": ("🛠️ Utility", "A Swiss Army knife of server tools. From detailed info to powerful management utilities all in one place."),
-            "vanityroles": ("✨ Vanity Roles", "Add a touch of personality and flair to every member’s profile with a sleek vanity role system."),
-            "voice": ("🔊 Voice", "Advanced voice channel management tools keeping your audio spaces organized, controlled, and always in check."),
-            "voicemaster": ("🎙️ VoiceMaster (Join to Create)", "The ultimate Join-to-Create system. Dynamic voice channels that create themselves when you join and delete when you leave. Members spin up their own temporary voice channels instantly."),
-            "welcomer": ("👋 Welcomer", "Greet new members with stunning fully customizable welcome and leave messages, image cards, dynamic variables, and role assignments making every arrival unforgettable.")
+            "antinuke": ("🛡️ Advanced Antinuke Protection", "An iron wall between your server and destructive nukers.\n\n**Commands:**\n`antinuke enable`, `antinuke disable`, `antinukelog set`, `antinukelog reset`, `antinukelog show`, `antinukelog msg`, `whitelist`, `whitelist remove`, `whitelist show`, `whitelist resetall`, `extraowner set`, `extraowner reset`, `extraowner list`, `extraowner remove`"),
+            "automod": ("🤖 Intelligent AutoMod", "Filters spam, bad words, invites, caps, and toxicity in real time.\n\n**Commands:**\n`automod enable`, `automod disable`, `automod reset`, `automod help`, `automod punishment set`, `automod punishment reset`, `automod punishment show`, `automod log set`, `automod log reset`, `automod log show`, `automod whitelist add`, `automod whitelist remove [@role/channel]`, `automod whitelist reset`, `automod whitelist config`, `automod whitelist show`, `automod manage [antispam/duplicate/emoji/word/mention/link/invite]`"),
+            "automations": ("🔗 Automations", "Automate repetitive server tasks with fully customizable triggers and actions."),
+            "autoresponder": ("🤍 AutoResponder", "Set up smart, instant replies to common triggers and keywords."),
+            "customroles": ("🎭 Custom Roles", "Create, manage, and assign roles with pinpoint precision."),
+            "dating": ("💖 Dating", "Spark real connections within your community."),
+            "fun": ("🎲 Fun & Games", "A massive arsenal of games, challenges, and entertainment commands."),
+            "general": ("🌐 General Commands", "All the essential tools you need for smooth everyday server interaction."),
+            "giveaways": ("🎁 Giveaways & Events", "Run flawless giveaways with requirements, winner selection, and logging."),
+            "leaderboard": ("🏆 Leaderboard", "Track activity and rank members server-wide."),
+            "logging": ("📜 Logging", "Razor-sharp detailed logs of every server event."),
+            "moderation": ("🔨 Powerful Moderation", "A powerhouse suite of 60+ commands for serious community management. Includes `purge`, `purgeuser`, `nuke`, etc."),
+            "music": ("🎵 High Quality Music", "Crystal-clear high-fidelity music playback with seamless queue management."),
+            "permit": ("👑 Permit System", "Granular role-based permission control.\n\n**Commands:**\n`permission [@role]`, `permission reset [@role]`, `permission reset all`, `permission owner [@role]`"),
+            "pfp": ("🖼️ Profile Pictures", "Let members showcase and manage their avatars effortlessly."),
+            "quarantine": ("☣️ Quarantine System", "Isolate threats dynamically.\n\n**Commands:**\n`quarantinerole create`, `quarantinerole set`, `quarantinerole reset`, `quarantinerole show`, `quarantinelog set`, `quarantinelog reset`, `quarantinelog show`, `quarantine [@user]`"),
+            "reactionroles": ("🔘 Reaction Roles", "Self-role assignment with a single reaction."),
+            "ticketing": ("🎫 Ticketing System", "Organize support with advanced panels, transcripts, and internal logging."),
+            "utility": ("🛠️ Utility", "A Swiss Army knife of server tools (e.g., `control`, `vsetup`, `setprefix`)."),
+            "vanityroles": ("✨ Vanity Roles", "Add personality to every member’s profile with a sleek vanity role system."),
+            "voice": ("🔊 Voice", "Advanced voice channel management tools."),
+            "voicemaster": ("🎙️ VoiceMaster", "Join-to-Create system. Members spin up temporary voice channels instantly."),
+            "welcomer": ("👋 Welcomer", "Greet new members with stunning fully customizable welcome and leave messages.")
         }
 
         embed.title, embed.description = data.get(selected, ("Error", "Module data not found."))
@@ -128,7 +130,7 @@ class HelpView(View):
         self.add_item(HelpSelect())
 
 # ==========================================================
-# 🧠 BOT INITIALIZATION
+# 🧠 BOT INITIALIZATION & GLOBAL CHECKS
 # ==========================================================
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
@@ -143,9 +145,9 @@ async def global_blacklist_check(ctx):
 
 @bot.event
 async def on_ready():
-    print(f"👑 SUCCESS: BADNAM Premium Engine Active as {bot.user.name}")
+    print(f"👑 SUCCESS: BADNAM Elite Master Core Active as {bot.user.name}")
     bot.add_view(VerifyButton())
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Over 2000+ Commands | b!help"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Over 2007+ Commands | b!help"))
 
 @bot.event
 async def on_message(message):
@@ -179,8 +181,19 @@ async def ban_user(ctx, user: discord.User):
     else:
         await ctx.send(f"⚠️ {user.mention} is already blacklisted.")
 
+@bot.command(name="banserver")
+@commands.is_owner()
+async def ban_server(ctx, guild_id: int):
+    db = load_db()
+    if guild_id not in db["bl_servers"]:
+        db["bl_servers"].append(guild_id)
+        save_db(db)
+        await ctx.send(f"🔨 **Server Blacklisted:** Server ID `{guild_id}` can no longer use BADNAM.")
+    else:
+        await ctx.send("⚠️ This server is already blacklisted.")
+
 # ==========================================================
-# 🛡️ CORE EXECUTIONS
+# 🛡️ CORE EXECUTIONS & UTILITY
 # ==========================================================
 @bot.command(name="setprefix")
 @commands.has_permissions(administrator=True)
@@ -197,11 +210,29 @@ async def vsetup(ctx):
     await ctx.send(embed=embed, view=VerifyButton())
     await ctx.message.delete()
 
+@bot.command(name="control")
+@commands.has_permissions(administrator=True)
+async def control(ctx):
+    pfx = get_prefix(bot, ctx.message)
+    if isinstance(pfx, list): pfx = pfx[1]
+    embed = discord.Embed(title="🛡️ BADNAM Control Panel", description="Automated system hub.", color=0x2b2d31)
+    embed.add_field(name="🟢 System Status", value="Active 24/7", inline=True)
+    embed.add_field(name="⚙️ Prefix", value=f"`{pfx}`", inline=True)
+    await ctx.send(embed=embed)
+
 @bot.command(name="purge")
 @commands.has_permissions(manage_messages=True)
 async def purge(ctx, amount: int):
     await ctx.channel.purge(limit=amount + 1)
     msg = await ctx.send(f"🧹 Purged **{amount}** messages.")
+    await msg.delete(delay=3)
+
+@bot.command(name="purgeuser")
+@commands.has_permissions(manage_messages=True)
+async def purgeuser(ctx, member: discord.Member, amount: int):
+    await ctx.message.delete()
+    deleted = await ctx.channel.purge(limit=amount, check=lambda m: m.author == member)
+    msg = await ctx.send(f"🧹 Purged **{len(deleted)}** messages from {member.mention}.")
     await msg.delete(delay=3)
 
 @bot.command(name="nuke")
@@ -212,7 +243,21 @@ async def nuke(ctx):
     new_channel = await channel.clone(reason="BADNAM Premium Engine Nuke")
     await channel.delete()
     await new_channel.edit(position=position)
-    await new_channel.send("🚨 **Channel reset successfully.**")
+    await new_channel.send("https://media.giphy.com/media/HhTXt43pk1I1W/giphy.gifn🚨 **Channel reset successfully.**")
+
+@bot.command(name="unbanall")
+@commands.has_permissions(administrator=True)
+async def unbanall(ctx):
+    banned_users = [entry async for entry in ctx.guild.bans()]
+    if not banned_users: return await ctx.send("✅ Nobody is currently banned.")
+    msg = await ctx.send(f"🔄 **Mass Recovery:** Reversing {len(banned_users)} bans. Please wait...")
+    count = 0
+    for ban_entry in banned_users:
+        try:
+            await ctx.guild.unban(ban_entry.user, reason="BADNAM Mass Recovery")
+            count += 1
+        except: pass
+    await msg.edit(content=f"✅ **Mass Recovery Complete:** Unbanned {count} users.")
 
 @bot.command(name="help")
 async def custom_help(ctx):
@@ -227,8 +272,8 @@ async def custom_help(ctx):
     
     categories_text = (
         "> 🛡️ » Antinuke\n> 🤖 » AutoMod\n> 🔗 » Automations\n> 🤍 » Autoresponder\n> 🎭 » Custom Roles\n> 💖 » Dating\n> 🎲 » Fun\n> 🌐 » General\n"
-        "> 🎁 » Giveaways\n> 🏆 » Leaderboard\n> 📜 » Logging\n> 🔨 » Moderation\n> 🎵 » Music\n> 👑 » Permit\n> 🖼️ » Pfp\n> 🔘 » Reaction Roles\n"
-        "> 🎫 » Ticketing\n> 🛠️ » Utility\n> ✨ » Vanity Roles\n> 🔊 » Voice\n> 🎙️ » VoiceMaster\n> 👋 » Welcomer"
+        "> 🎁 » Giveaways\n> 🏆 » Leaderboard\n> 📜 » Logging\n> 🔨 » Moderation\n> 🎵 » Music\n> 👑 » Permit\n> 🖼️ » Pfp\n> ☣️ » Quarantine\n"
+        "> 🔘 » Reaction Roles\n> 🎫 » Ticketing\n> 🛠️ » Utility\n> ✨ » Vanity Roles\n> 🔊 » Voice\n> 🎙️ » VoiceMaster\n> 👋 » Welcomer"
     )
 
     body_text = (
