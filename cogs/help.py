@@ -1,44 +1,37 @@
 import discord
 from discord.ext import commands
 
+# Dictionary mapping categories to their commands
+COMMAND_MAP = {
+    "Anti-Nuke": "`b!setup` `b!antinuke` `b!quarantine` `b!panic` `b!backup` `b!sanitize`",
+    "AutoMod": "`b!automod` `b!blackwords` `b!antispam` `b!antilink` `b!antiinvite`",
+    "Verification": "`b!verification` `b!captcha` `b!verify` `b!joingate` `b!antiraid`",
+    "Moderation": "`b!ban` `b!kick` `b!mute` `b!timeout` `b!purge` `b!lock` `b!warn`",
+    "Tickets": "`b!ticket` `b!panel` `b!autothread` `b!modmail`",
+    "Economy": "`b!bal` `b!work` `b!daily` `b!crime` `b!deposit` `b!withdraw` `b!shop` `b!slots`",
+    "Music": "`b!play` `b!stop` `b!pause` `b!skip` `b!queue` `b!loop` `b!volume` `b!filter`",
+    "Logging": "`b!autologs` `b!cases` `b!case` `b!diagnose` `b!stats`",
+    # ... (You can add the rest of your modules here following this pattern)
+}
+
 class HelpSelect(discord.ui.Select):
     def __init__(self):
-        options = [
-            discord.SelectOption(label="Anti-Nuke", description="Core server protection", emoji="🛡️"),
-            discord.SelectOption(label="AutoMod", description="Chat filters and spam protection", emoji="🤖"),
-            discord.SelectOption(label="Verification", description="Join gate and captcha", emoji="🚪"),
-            discord.SelectOption(label="Moderation", description="Bans, kicks, mutes, and purges", emoji="🔨"),
-            discord.SelectOption(label="Tickets", description="Support panels and modmail", emoji="🎫"),
-            discord.SelectOption(label="Advanced Security", description="Deep profiling and panics", emoji="🕵️"),
-            discord.SelectOption(label="AI AutoMod", description="Smart toxicity and scam filters", emoji="🧠"),
-            discord.SelectOption(label="Welcome", description="Join/leave cards and autoroles", emoji="👋"),
-            discord.SelectOption(label="Protections", description="Anti-delete and anti-bot", emoji="♻️"),
-            discord.SelectOption(label="Enterprise", description="VPN blockers and vanity locks", emoji="🌐"),
-            discord.SelectOption(label="Utilities", description="Embeds, tags, and polls", emoji="⚙️"),
-            discord.SelectOption(label="Leveling", description="XP tracking and rewards", emoji="📈"),
-            discord.SelectOption(label="Economy", description="Currency, shop, and gambling", emoji="💵"),
-            discord.SelectOption(label="Logging", description="Audit trails and diagnostics", emoji="📂"),
-            discord.SelectOption(label="Music", description="Audio playback and filters", emoji="🎵"),
-            discord.SelectOption(label="Voice", description="Join-to-create and VC tools", emoji="🔊"),
-            discord.SelectOption(label="Events", description="Giveaways and starboards", emoji="🎉"),
-            discord.SelectOption(label="Recovery", description="OAuth member restoration", emoji="🧲"),
-            discord.SelectOption(label="Automations", description="Auto-reacts and sticky messages", emoji="📌"),
-            discord.SelectOption(label="Counters", description="Message and voice tracking", emoji="📊")
-        ]
-        super().__init__(placeholder="Select a module to view commands...", min_values=1, max_values=1, options=options)
+        options = [discord.SelectOption(label=cat, description=f"View {cat} commands", emoji="📂") for cat in COMMAND_MAP.keys()]
+        super().__init__(placeholder="👉 Select a category to see commands", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
+        category = self.values[0]
         embed = discord.Embed(
-            title=f"{self.values[0]} Commands",
-            description=f"Here are the commands for the **{self.values[0]}** module.",
-            color=discord.Color.blue()
+            title=f"🛡️ {category} Module",
+            description=f"**Available Commands:**\n\n{COMMAND_MAP.get(category, 'No commands listed.')}",
+            color=discord.Color.from_rgb(128, 0, 128) # Professional deep purple
         )
-        embed.set_footer(text="Use b!help <command> for more info.")
+        embed.set_footer(text="BADNAM Security & Management System")
         await interaction.response.edit_message(embed=embed)
 
 class HelpView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=120)
+        super().__init__(timeout=180)
         self.add_item(HelpSelect())
 
 class Help(commands.Cog):
@@ -48,30 +41,15 @@ class Help(commands.Cog):
     @commands.command(name="help")
     async def custom_help(self, ctx):
         embed = discord.Embed(
-            title="BADNAM Master Command Center",
-            description="Welcome to BADNAM. Select a category from the dropdown below to view its commands.",
+            title="✨ BADNAM Control Panel",
+            description="Welcome, Commander. Use the dropdown menu below to navigate the system modules.",
             color=discord.Color.dark_theme()
         )
+        embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
+        embed.add_field(name="🌐 Official Website", value="[Click here](https://badnam.com)", inline=True)
+        embed.add_field(name="🔗 Support Hub", value="[Join Here](https://discord.gg/yourlink)", inline=True)
         
-        # Bot & Developer Info
-        embed.add_field(name="👑 Developer", value="YourNameHere", inline=True)
-        embed.add_field(name="🔗 Support Server", value="[Join Here](https://discord.gg/yourlink)", inline=True)
-        embed.add_field(name="🌐 Website", value="[badnam.com](https://badnam.com)", inline=True)
-        
-        # Showcase the 20 modules
-        modules_list = (
-            "`Anti-Nuke` `AutoMod` `Verification` `Moderation` `Tickets`\n"
-            "`Advanced Security` `AI AutoMod` `Welcome` `Protections` `Enterprise`\n"
-            "`Utilities` `Leveling` `Economy` `Logging` `Music`\n"
-            "`Voice` `Events` `Recovery` `Automations` `Counters`"
-        )
-        embed.add_field(name="📦 Loaded Modules", value=modules_list, inline=False)
-        
-        if self.bot.user.avatar:
-            embed.set_thumbnail(url=self.bot.user.avatar.url)
-
-        view = HelpView()
-        await ctx.send(embed=embed, view=view)
+        await ctx.send(embed=embed, view=HelpView())
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
