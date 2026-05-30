@@ -1,50 +1,26 @@
 import discord
 from discord.ext import commands
 
-# 1. THE DATA STRUCTURE: Categories > Tools > Commands
-COMMANDS_DB = {
-    "🛡️ SECURITY": {
-        "Antinuke": "`b!setup`, `b!antinuke`, `b!panic`",
-        "Automod": "`b!blackwords`, `b!antispam`, `b!antilink`",
-        "Quarantine": "`b!quarantine`, `b!unquarantine`",
-        "Adv. Security": "`b!whois`, `b!anpanic`",
-        "Enterprise Intel": "`b!proxyblocker`, `b!threatmesh`",
-        "AI AutoMod": "`b!ai-mod toxicity`, `b!ai-mod scam`"
-    },
-    "⚙️ MANAGEMENT": {
-        "Tickets": "`b!ticket`, `b!panel`",
-        "Custom Roles": "`b!role add`",
-        "Verification": "`b!verify`, `b!joingate`",
-        "Moderation": "`b!ban`, `b!kick`, `b!mute`",
-        "Logging": "`b!autologs`, `b!diagnose`"
-        # ... (Add others here)
-    }
-}
-
-class ToolSelect(discord.ui.Select):
-    def __init__(self, tools_dict):
-        options = [discord.SelectOption(label=tool, description=cmd) for tool, cmd in tools_dict.items()]
-        super().__init__(placeholder="👉 Choose a tool to see commands", options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        tool = self.values[0]
-        embed = interaction.message.embeds[0]
-        embed.title = f"🛠️ {tool} Commands"
-        embed.description = f"**Usage:** {self.options[0].description}" # simplified
-        await interaction.response.edit_message(embed=embed)
-
-class CategorySelect(discord.ui.Select):
+class HelpView(discord.ui.View):
     def __init__(self):
-        options = [discord.SelectOption(label=cat, emoji=cat.split(" ")[0]) for cat in COMMANDS_DB.keys()]
-        super().__init__(placeholder="> Select a category to start...", options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        cat = self.values[0]
-        view = discord.ui.View()
-        view.add_item(ToolSelect(COMMANDS_DB[cat]))
+        super().__init__(timeout=None)
+        # We create a dropdown for each of your 5 categories
+        self.add_item(discord.ui.Select(placeholder="> Security Commands", options=[
+            discord.SelectOption(label="Antinuke", description="Protection commands"),
+            discord.SelectOption(label="Automod", description="Chat filters"),
+            discord.SelectOption(label="Quarantine", description="Isolation tools"),
+            discord.SelectOption(label="Adv. Security", description="Deep threat analysis"),
+            discord.SelectOption(label="Enterprise Intel", description="Pro-tier defense"),
+            discord.SelectOption(label="AI AutoMod", description="Smart moderation")
+        ]))
         
-        embed = discord.Embed(title=f"📦 {cat} Tools", description="Now pick a specific tool from the dropdown below:", color=0x5865F2)
-        await interaction.response.edit_message(embed=embed, view=view)
+        self.add_item(discord.ui.Select(placeholder="> Management Commands", options=[
+            discord.SelectOption(label="Tickets", description="Support systems"),
+            discord.SelectOption(label="Custom Roles", description="Role management"),
+            discord.SelectOption(label="Verification", description="Gatekeeping"),
+            discord.SelectOption(label="Moderation", description="Staff toolkit"),
+            discord.SelectOption(label="Logging", description="Audit logs")
+        ]))
 
 class Help(commands.Cog):
     def __init__(self, bot):
@@ -52,13 +28,18 @@ class Help(commands.Cog):
 
     @commands.command(name="help")
     async def custom_help(self, ctx):
-        embed = discord.Embed(
-            title="BADNAM Command Center",
-            description="A powerful security & management bot built for complete Discord protection.\n\nSelect a **Category** below to see the **Tools** inside.",
-            color=0x2b2d31
+        embed = discord.Embed(color=0x2b2d31)
+        embed.description = (
+            "**My Prefix:** `b!`\n\n"
+            "**⚙️ SECURITY**\n🛡️ Antinuke · Automod · Quarantine · Adv. Security · Enterprise Intel · AI AutoMod\n\n"
+            "**⚙️ MANAGEMENT**\n🎫 Tickets · Custom Role · Levels · VC Levels · Msg Count · VC Count · Invite Count · AutoRole · Join to Create · Logging · Verification · Moderation · Giveaway · General\n\n"
+            "**💬 MESSAGING**\n📌 Sticky · Welcome · Leave · Boost · Auto Respond\n\n"
+            "**✨ GAMES**\n🖼️ Pfp Event · Slots · Auto React · Economy · Utils\n\n"
+            "**🎵 MUSIC**\n🔊 Music · Voice"
         )
-        embed.set_thumbnail(url=self.bot.user.avatar.url)
-        await ctx.send(embed=embed, view=discord.ui.View().add_item(CategorySelect()))
+        embed.set_footer(text="SUPPORT | INVITE | WEBSITE | DASHBOARD")
+        
+        await ctx.send(embed=embed, view=HelpView())
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
