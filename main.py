@@ -1,71 +1,76 @@
 import discord
 from discord.ext import commands
 import os
-from flask import Flask
-from threading import Thread
+import asyncio
 
-# ==========================================================
-# 🌐 KEEP-ALIVE SERVER (For Render)
-# ==========================================================
-app = Flask('')
-@app.route('/')
-def home(): 
-    return "⚡ BADNAM Enterprise Core Online."
+# 1. Setup Intents (Required for Moderation, Members, and Message Content)
+intents = discord.Intents.all()
 
-def run(): 
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+# 2. Initialize the Bot
+# help_command=None completely removes Discord's default help command so our custom dropdown works.
+bot = commands.Bot(command_prefix="b!", intents=intents, help_command=None)
 
-def keep_alive(): 
-    Thread(target=run).start()
+# 3. Master List of All Loaded Modules (Cogs)
+initial_extensions = [
+    "cogs.antinuke",
+    "cogs.automod",
+    "cogs.verification",
+    "cogs.moderation",
+    "cogs.tickets",
+    "cogs.advanced_security",
+    "cogs.ai_automod",
+    "cogs.welcome",
+    "cogs.protections",
+    "cogs.enterprise",
+    "cogs.utilities",
+    "cogs.advanced_leveling",
+    "cogs.economy",
+    "cogs.logging",
+    "cogs.music",
+    "cogs.voice",
+    "cogs.events",
+    "cogs.recovery",
+    "cogs.automations",
+    "cogs.counters",
+    "cogs.help"
+]
 
-# ==========================================================
-# 🤖 BOT ARCHITECTURE & ENGINE
-# ==========================================================
-class BadnamBot(commands.Bot):
-    def __init__(self):
-        # Intents allow the bot to see members, messages, etc.
-        intents = discord.Intents.all()
-        
-        super().__init__(
-            command_prefix=self.get_dynamic_prefix, 
-            intents=intents, 
-            help_command=None
-        )
-
-    async def get_dynamic_prefix(self, bot, message):
-        # Right now it defaults to b! 
-        # Later, we will hook this up to the database so it can change per server!
-        return ["b!", "B!"]
-
-    async def setup_hook(self):
-        print("⚙️ Booting Master Core...")
-        
-        # This automatically looks inside your "cogs" folder and loads every file
-        if not os.path.exists('./cogs'):
-            os.makedirs('./cogs')
-
-        for filename in os.listdir('./cogs'):
-            if filename.endswith('.py'):
-                try:
-                    await self.load_extension(f'cogs.{filename[:-3]}')
-                    print(f"✅ Loaded Module: {filename}")
-                except Exception as e:
-                    print(f"❌ Failed to load {filename}: {e}")
-
-    async def on_ready(self):
-        print(f"👑 BADNAM Master is online as {self.user}")
-        await self.change_presence(activity=discord.Activity(
+# 4. Boot Sequence
+@bot.event
+async def on_ready():
+    print("========================================")
+    print(f"✅ SYSTEM ONLINE: {bot.user.name} is fully armed!")
+    print(f"🤖 Loaded {len(bot.cogs)} master modules successfully.")
+    print("========================================")
+    
+    # Set the bot's status message
+    await bot.change_presence(
+        activity=discord.Activity(
             type=discord.ActivityType.watching, 
-            name="b!help | Securing Servers"
-        ))
+            name="over the server | b!help"
+        )
+    )
 
-# ==========================================================
-# LAUNCHER
-# ==========================================================
-bot = BadnamBot()
+# 5. Async Loading and Execution
+async def main():
+    # Load all cogs dynamically
+    for extension in initial_extensions:
+        try:
+            await bot.load_extension(extension)
+            print(f"⚙️ Loaded: {extension}")
+        except Exception as e:
+            print(f"❌ Failed to load {extension}: {e}")
+
+    # Fetch token from environment variables (vital for Render/Hosting security)
+    # Make sure your environment variable on Render is named exactly "DISCORD_TOKEN"
+    token = os.environ.get("DISCORD_TOKEN")
+    
+    if not token:
+        print("🛑 CRITICAL ERROR: DISCORD_TOKEN environment variable not found!")
+        return
+
+    # Ignite the bot
+    await bot.start(token)
 
 if __name__ == "__main__":
-    keep_alive()
-    # Grabs your token securely from Render's environment variables
-    bot.run(os.environ.get('DISCORD_TOKEN'))
+    asyncio.run(main())
