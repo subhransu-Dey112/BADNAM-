@@ -1,32 +1,33 @@
 import discord
 from discord.ext import commands
 
-# Dictionary mapping categories to their commands
+# Gen Z / Simple Language Mapping
 COMMAND_MAP = {
-    "Anti-Nuke": "`b!setup` `b!antinuke` `b!quarantine` `b!panic` `b!backup` `b!sanitize`",
-    "AutoMod": "`b!automod` `b!blackwords` `b!antispam` `b!antilink` `b!antiinvite`",
-    "Verification": "`b!verification` `b!captcha` `b!verify` `b!joingate` `b!antiraid`",
-    "Moderation": "`b!ban` `b!kick` `b!mute` `b!timeout` `b!purge` `b!lock` `b!warn`",
-    "Tickets": "`b!ticket` `b!panel` `b!autothread` `b!modmail`",
-    "Economy": "`b!bal` `b!work` `b!daily` `b!crime` `b!deposit` `b!withdraw` `b!shop` `b!slots`",
-    "Music": "`b!play` `b!stop` `b!pause` `b!skip` `b!queue` `b!loop` `b!volume` `b!filter`",
-    "Logging": "`b!autologs` `b!cases` `b!case` `b!diagnose` `b!stats`",
-    # ... (You can add the rest of your modules here following this pattern)
+    "🛡️ Server Guard": "I keep the server safe from bad guys. Use `b!antinuke` to turn on my shields!",
+    "🔨 The Cleaners": "I take out the trash (bad messages) and ban the trolls. Use `b!ban` or `b!kick`.",
+    "🎟️ Help Desk": "Need help? I open private rooms for you to talk to staff. Just use `b!ticket`.",
+    "📈 My Rank": "Check how cool you are! Use `b!rank` to see your level and points.",
+    "💵 Money & Fun": "Earn coins, play games, and buy stuff in the shop. Use `b!bal` or `b!slots`.",
+    "🎶 Vibe Vibes": "I play your favorite music. Use `b!play` and just enjoy the tunes.",
+    "🚪 The Gate": "I check if new people are real before letting them in. Use `b!verification`."
 }
 
 class HelpSelect(discord.ui.Select):
     def __init__(self):
-        options = [discord.SelectOption(label=cat, description=f"View {cat} commands", emoji="📂") for cat in COMMAND_MAP.keys()]
-        super().__init__(placeholder="👉 Select a category to see commands", min_values=1, max_values=1, options=options)
+        options = [
+            discord.SelectOption(label=cat, description=cat.split(" ")[1] + " stuff!", emoji=cat.split(" ")[0]) 
+            for cat in COMMAND_MAP.keys()
+        ]
+        super().__init__(placeholder="🌟 Tap here to see what I can do!", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         category = self.values[0]
         embed = discord.Embed(
-            title=f"🛡️ {category} Module",
-            description=f"**Available Commands:**\n\n{COMMAND_MAP.get(category, 'No commands listed.')}",
-            color=discord.Color.from_rgb(128, 0, 128) # Professional deep purple
+            title=f"{category} ✨",
+            description=f"**Here’s the simple version:**\n\n{COMMAND_MAP.get(category)}",
+            color=discord.Color.from_rgb(255, 105, 180) # Hot Pink Vibe
         )
-        embed.set_footer(text="BADNAM Security & Management System")
+        embed.set_footer(text="BADNAM: Simple, Safe, & Fun for everyone.")
         await interaction.response.edit_message(embed=embed)
 
 class HelpView(discord.ui.View):
@@ -41,13 +42,13 @@ class Help(commands.Cog):
     @commands.command(name="help")
     async def custom_help(self, ctx):
         embed = discord.Embed(
-            title="✨ BADNAM Control Panel",
-            description="Welcome, Commander. Use the dropdown menu below to navigate the system modules.",
-            color=discord.Color.dark_theme()
+            title="👋 Hey Bestie! Welcome to BADNAM",
+            description="I’m your friendly bot helper! No matter if you're 5 or 80, I’m here to make things easy. Tap the menu below to pick what you need!",
+            color=discord.Color.from_rgb(147, 112, 219) # Medium Purple
         )
         embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
-        embed.add_field(name="🌐 Official Website", value="[Click here](https://badnam.com)", inline=True)
-        embed.add_field(name="🔗 Support Hub", value="[Join Here](https://discord.gg/yourlink)", inline=True)
+        embed.add_field(name="🌐 Visit Us", value="[Click for Website](https://badnam.com)", inline=True)
+        embed.add_field(name="💬 Chat with us", value="[Join Support](https://discord.gg/yourlink)", inline=True)
         
         await ctx.send(embed=embed, view=HelpView())
 
