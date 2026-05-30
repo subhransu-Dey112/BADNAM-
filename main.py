@@ -2,15 +2,29 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
+from flask import Flask
+from threading import Thread
 
-# 1. Setup Intents (Required for Moderation, Members, and Message Content)
+# 1. Setup Intents
 intents = discord.Intents.all()
 
 # 2. Initialize the Bot
-# help_command=None completely removes Discord's default help command so our custom dropdown works.
 bot = commands.Bot(command_prefix="b!", intents=intents, help_command=None)
 
-# 3. Master List of All Loaded Modules (Cogs)
+# 3. Web Server Patch (To fix the "No open ports detected" error from image_5be95e.png)
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "BADNAM Bot is alive!"
+
+def run_web_server():
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
+# Start the web server in a background thread
+Thread(target=run_web_server).start()
+
+# 4. Master List of All Loaded Modules (Cogs)
 initial_extensions = [
     "cogs.antinuke",
     "cogs.automod",
@@ -35,7 +49,7 @@ initial_extensions = [
     "cogs.help"
 ]
 
-# 4. Boot Sequence
+# 5. Boot Sequence
 @bot.event
 async def on_ready():
     print("========================================")
@@ -43,7 +57,6 @@ async def on_ready():
     print(f"🤖 Loaded {len(bot.cogs)} master modules successfully.")
     print("========================================")
     
-    # Set the bot's status message
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching, 
@@ -51,9 +64,8 @@ async def on_ready():
         )
     )
 
-# 5. Async Loading and Execution
+# 6. Async Execution
 async def main():
-    # Load all cogs dynamically
     for extension in initial_extensions:
         try:
             await bot.load_extension(extension)
@@ -61,15 +73,11 @@ async def main():
         except Exception as e:
             print(f"❌ Failed to load {extension}: {e}")
 
-    # Fetch token from environment variables (vital for Render/Hosting security)
-    # Make sure your environment variable on Render is named exactly "DISCORD_TOKEN"
     token = os.environ.get("DISCORD_TOKEN")
-    
     if not token:
         print("🛑 CRITICAL ERROR: DISCORD_TOKEN environment variable not found!")
         return
 
-    # Ignite the bot
     await bot.start(token)
 
 if __name__ == "__main__":
