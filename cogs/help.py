@@ -1,47 +1,13 @@
 import discord
 from discord.ext import commands
 
-class HelpView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=180)
-        # Adding Dropdowns for all 5 categories (Discord allows max 5 per message!)
-        self.add_item(discord.ui.Select(placeholder="> Security Commands", options=[
-            discord.SelectOption(label="Antinuke", description="Protection commands"),
-            discord.SelectOption(label="Automod", description="Chat filters"),
-            discord.SelectOption(label="Quarantine", description="Isolation tools"),
-            discord.SelectOption(label="Adv. Security", description="Deep threat analysis"),
-            discord.SelectOption(label="Enterprise Intel", description="Pro-tier defense"),
-            discord.SelectOption(label="AI AutoMod", description="Smart moderation")
-        ], custom_id="sec"))
-        
-        self.add_item(discord.ui.Select(placeholder="> Management Commands", options=[
-            discord.SelectOption(label="Tickets", description="Support systems"),
-            discord.SelectOption(label="Custom Roles", description="Role management"),
-            discord.SelectOption(label="Verification", description="Gatekeeping"),
-            discord.SelectOption(label="Moderation", description="Staff toolkit"),
-            discord.SelectOption(label="Logging", description="Audit logs")
-        ], custom_id="mgt"))
+class HelpDropdown(discord.ui.Select):
+    def __init__(self, placeholder, options):
+        super().__init__(placeholder=placeholder, options=options)
 
-        self.add_item(discord.ui.Select(placeholder="> Messaging Commands", options=[
-            discord.SelectOption(label="Sticky", description="Sticky messages"),
-            discord.SelectOption(label="Welcome", description="Join messages"),
-            discord.SelectOption(label="Leave", description="Leave messages"),
-            discord.SelectOption(label="Boost", description="Boost tracker"),
-            discord.SelectOption(label="Auto Respond", description="Auto triggers")
-        ], custom_id="msg"))
-
-        self.add_item(discord.ui.Select(placeholder="> Games Commands", options=[
-            discord.SelectOption(label="Pfp Event", description="Profile picture events"),
-            discord.SelectOption(label="Slots", description="Casino slots"),
-            discord.SelectOption(label="Auto React", description="Reaction triggers"),
-            discord.SelectOption(label="Economy", description="Currency system"),
-            discord.SelectOption(label="Utils", description="Fun utilities")
-        ], custom_id="game"))
-
-        self.add_item(discord.ui.Select(placeholder="> Music Commands", options=[
-            discord.SelectOption(label="Music", description="Audio playback"),
-            discord.SelectOption(label="Voice", description="Voice channel tools")
-        ], custom_id="mus"))
+    async def callback(self, interaction: discord.Interaction):
+        # We will add the actual command lists here later!
+        await interaction.response.send_message(f"You selected {self.values[0]}!", ephemeral=True)
 
 class Help(commands.Cog):
     def __init__(self, bot):
@@ -49,55 +15,50 @@ class Help(commands.Cog):
 
     @commands.command(name="help")
     async def custom_help(self, ctx):
-        embed = discord.Embed(color=0x2b2d31)
+        # 1. SECURITY
+        embed1 = discord.Embed(color=0x2b2d31, description="**My Prefix:** `b!`\n\n**⚙️ SECURITY ⚙️**\n🛡️ Antinuke\n🛡️ Automod\n🛡️ Quarantine\n🛡️ Adv. Security\n🛡️ Enterprise Intel\n🛡️ AI AutoMod")
+        if self.bot.user.avatar:
+            embed1.set_thumbnail(url=self.bot.user.avatar.url)
+        view1 = discord.ui.View().add_item(HelpDropdown("> Security Commands", [
+            discord.SelectOption(label="Antinuke"), discord.SelectOption(label="Automod"), 
+            discord.SelectOption(label="Quarantine"), discord.SelectOption(label="Adv. Security"), 
+            discord.SelectOption(label="Enterprise Intel"), discord.SelectOption(label="AI AutoMod")
+        ]))
+        await ctx.send(embed=embed1, view=view1)
         
-        # Making the list purely vertical with emojis, exactly like the image
-        embed.description = (
-            "**My Prefix:** `b!`\n\n"
-            "**⚙️ SECURITY ⚙️**\n"
-            "🛡️ Antinuke\n"
-            "🛡️ Automod\n"
-            "🛡️ Quarantine\n"
-            "🛡️ Adv. Security\n"
-            "🛡️ Enterprise Intel\n"
-            "🛡️ AI AutoMod\n\n"
-            "**⚙️ MANAGEMENT ⚙️**\n"
-            "🎫 Tickets\n"
-            "🎴 Custom Role\n"
-            "📊 Levels\n"
-            "🎙️ VC Levels\n"
-            "💬 Msg Count\n"
-            "🔊 VC Count\n"
-            "🔗 Invite Count\n"
-            "🐾 AutoRole\n"
-            "🎧 Join to Create\n"
-            "📂 Logging\n"
-            "🚪 Verification\n"
-            "🔨 Moderation\n"
-            "🎁 Giveaway\n"
-            "🌐 General\n\n"
-            "**💬 MESSAGING 💬**\n"
-            "📌 Sticky\n"
-            "👋 Welcome\n"
-            "🚪 Leave\n"
-            "🚀 Boost\n"
-            "🤖 Auto Respond\n\n"
-            "**✨ GAMES ✨**\n"
-            "🖼️ Pfp Event\n"
-            "🎰 Slots\n"
-            "⚡ Auto React\n"
-            "💵 Economy\n"
-            "⚙️ Utils\n\n"
-            "**🎵 MUSIC 🎵**\n"
-            "🎶 Music\n"
-            "🎤 Voice\n\n"
-            "**[SUPPORT](https://discord.gg/yourlink) | [INVITE](https://discord.com/oauth2) | [WEBSITE](https://badnam.com) | [DASHBOARD](https://badnam.com/dash)**"
-        )
-        
-        # Adding the thumbnail to the top right
-        embed.set_thumbnail(url=self.bot.user.avatar.url if self.bot.user.avatar else None)
-        
-        await ctx.send(embed=embed, view=HelpView())
+        # 2. MANAGEMENT
+        embed2 = discord.Embed(color=0x2b2d31, description="**⚙️ MANAGEMENT ⚙️**\n🎫 Tickets\n🎴 Custom Role\n📊 Levels\n🎙️ VC Levels\n💬 Msg Count\n🔊 VC Count\n🔗 Invite Count\n🐾 AutoRole\n🎧 Join to Create\n📂 Logging\n🚪 Verification\n🔨 Moderation\n🎁 Giveaway\n🌐 General")
+        view2 = discord.ui.View().add_item(HelpDropdown("> Management Commands", [
+            discord.SelectOption(label="Tickets"), discord.SelectOption(label="Custom Roles"), 
+            discord.SelectOption(label="Verification"), discord.SelectOption(label="Moderation"), 
+            discord.SelectOption(label="Logging") # Add more as needed
+        ]))
+        await ctx.send(embed=embed2, view=view2)
+
+        # 3. MESSAGING
+        embed3 = discord.Embed(color=0x2b2d31, description="**💬 MESSAGING 💬**\n📌 Sticky\n👋 Welcome\n🚪 Leave\n🚀 Boost\n🤖 Auto Respond")
+        view3 = discord.ui.View().add_item(HelpDropdown("> Messaging Commands", [
+            discord.SelectOption(label="Sticky"), discord.SelectOption(label="Welcome"), 
+            discord.SelectOption(label="Leave"), discord.SelectOption(label="Boost"), 
+            discord.SelectOption(label="Auto Respond")
+        ]))
+        await ctx.send(embed=embed3, view=view3)
+
+        # 4. GAMES
+        embed4 = discord.Embed(color=0x2b2d31, description="**✨ GAMES ✨**\n🖼️ Pfp Event\n🎰 Slots\n⚡ Auto React\n💵 Economy\n⚙️ Utils")
+        view4 = discord.ui.View().add_item(HelpDropdown("> Games Commands", [
+            discord.SelectOption(label="Pfp Event"), discord.SelectOption(label="Slots"), 
+            discord.SelectOption(label="Auto React"), discord.SelectOption(label="Economy"), 
+            discord.SelectOption(label="Utils")
+        ]))
+        await ctx.send(embed=embed4, view=view4)
+
+        # 5. MUSIC + FOOTER
+        embed5 = discord.Embed(color=0x2b2d31, description="**🎵 MUSIC 🎵**\n🎶 Music\n🎤 Voice\n\n**[SUPPORT](https://discord.gg/yourlink) | [INVITE](https://discord.com/oauth2) | [WEBSITE](https://badnam.com) | [DASHBOARD](https://badnam.com/dash)**")
+        view5 = discord.ui.View().add_item(HelpDropdown("> Music Commands", [
+            discord.SelectOption(label="Music"), discord.SelectOption(label="Voice")
+        ]))
+        await ctx.send(embed=embed5, view=view5)
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
