@@ -3,36 +3,50 @@ from discord.ext import commands
 import os
 from flask import Flask
 from threading import Thread
-# import asyncpg
-# import redis.asyncio as redis
 
-# --- Keep Alive Server ---
+# ==========================================================
+# 🌐 KEEP-ALIVE SERVER (For Render)
+# ==========================================================
 app = Flask('')
 @app.route('/')
-def home(): return "⚡ BADNAM DB Core Online."
+def home(): return "⚡ BADNAM Enterprise Core Online."
 def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 def keep_alive(): Thread(target=run).start()
 
-# --- Bot Architecture ---
+# ==========================================================
+# 🤖 BOT ARCHITECTURE & COG LOADER
+# ==========================================================
 class BadnamBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=self.get_prefix_db, intents=discord.Intents.all(), help_command=None)
-        self.db = None
-        self.cache = None
+        super().__init__(
+            command_prefix=self.get_prefix_dynamic, 
+            intents=discord.Intents.all(), 
+            help_command=None
+        )
 
-    async def setup_hook(self):
-        print("Initializing Master Core...")
-        # Future: Connect PostgreSQL and Redis here
-        # self.db = await asyncpg.create_pool(os.environ.get("POSTGRES_URL"))
-        # self.cache = redis.from_url(os.environ.get("REDIS_URL"))
-        print("Ready to load modules.")
-
-    async def get_prefix_db(self, bot, message):
-        # Future: Fetch from Redis cache instantly
+    async def get_prefix_dynamic(self, bot, message):
+        # Future: This will pull from Redis cache instantly
         return "b!"
 
+    async def setup_hook(self):
+        print("⚙️ Booting Master Core...")
+        
+        # Automatically load all modules from the 'cogs' folder
+        for filename in os.listdir('./cogs'):
+            if filename.endswith('.py'):
+                try:
+                    await self.load_extension(f'cogs.{filename[:-3]}')
+                    print(f"✅ Loaded Module: {filename}")
+                except Exception as e:
+                    print(f"❌ Failed to load {filename}: {e}")
+                    
+        # Sync slash commands globally
+        await self.tree.sync()
+        print("🌍 Global Slash Commands Synced.")
+
     async def on_ready(self):
-        print(f"👑 SUCCESS: {self.user} is online and ready.")
+        print(f"👑 BADNAM Master is online as {self.user}")
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Over 2000+ Commands"))
 
 bot = BadnamBot()
 
