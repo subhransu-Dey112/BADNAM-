@@ -48,12 +48,22 @@ COMMANDS_DB = {
 }
 
 class ToolSelect(discord.ui.Select):
-    def __init__(self, category):
+    def __init__(self, category, main_embed):
         self.category = category
+        self.main_embed = main_embed
+        
+        # Load tools and add the "Back" button at the bottom
         options = [discord.SelectOption(label=tool) for tool in COMMANDS_DB[category].keys()]
+        options.append(discord.SelectOption(label="Back", description="Return to main menu", emoji="↩️"))
+        
         super().__init__(placeholder="> Select a module...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
+        # If they hit Back, show the main embed again
+        if self.values[0] == "Back":
+            await interaction.response.edit_message(embed=self.main_embed, view=HelpView(self.main_embed))
+            return
+
         tool = self.values[0]
         cmds = COMMANDS_DB[self.category][tool]
         
@@ -66,7 +76,8 @@ class ToolSelect(discord.ui.Select):
         await interaction.response.edit_message(embed=embed)
 
 class CategorySelect(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, main_embed):
+        self.main_embed = main_embed
         options = [discord.SelectOption(label=cat, emoji=cat.split(" ")[0]) for cat in COMMANDS_DB.keys()]
         super().__init__(placeholder="> Choose a Specific Module...", options=options)
 
@@ -74,20 +85,23 @@ class CategorySelect(discord.ui.Select):
         category = self.values[0]
         
         view = discord.ui.View(timeout=180)
-        view.add_item(ToolSelect(category))
+        view.add_item(ToolSelect(category, self.main_embed))
+        
+        # Lists out the tools nicely under the text instead of dots
+        tools_list = "\n".join([f"> 🔹 **{tool}**" for tool in COMMANDS_DB[category].keys()])
         
         embed = discord.Embed(
             title=f"{category}",
-            description=f"You selected **{category}**.\n\n👇 Pick a specific module below to view commands.",
+            description=f"You selected **{category}**.\n\n👇 Pick a specific module below to view commands:\n\n{tools_list}",
             color=0x2b2d31
         )
         embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
         await interaction.response.edit_message(embed=embed, view=view)
 
 class HelpView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, main_embed):
         super().__init__(timeout=180)
-        self.add_item(CategorySelect())
+        self.add_item(CategorySelect(main_embed))
 
 class Help(commands.Cog):
     def __init__(self, bot):
@@ -95,7 +109,6 @@ class Help(commands.Cog):
 
     @commands.command(name="help")
     async def custom_help(self, ctx):
-        # Calculate total commands dynamically
         total_cmds = sum(len(cmds.split(',')) for cats in COMMANDS_DB.values() for cmds in cats.values())
 
         embed = discord.Embed(
@@ -120,7 +133,8 @@ class Help(commands.Cog):
             
         embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
             
-        await ctx.send(embed=embed, view=HelpView())
+        # We pass the embed into the view so the "Back" button can use it later
+        await ctx.send(embed=embed, view=HelpView(embed))
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
