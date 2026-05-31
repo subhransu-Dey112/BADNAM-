@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-# The database of all your commands
+# Command Database
 COMMANDS_DB = {
     "🛡️ SECURITY": {
         "Antinuke": "`b!setup`, `b!antinuke`, `b!panic`",
@@ -50,9 +50,8 @@ COMMANDS_DB = {
 class ToolSelect(discord.ui.Select):
     def __init__(self, category):
         self.category = category
-        # Grabs the specific tools for whatever category was clicked
         options = [discord.SelectOption(label=tool) for tool in COMMANDS_DB[category].keys()]
-        super().__init__(placeholder=f"> Select a tool...", options=options)
+        super().__init__(placeholder="> Select a module...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         tool = self.values[0]
@@ -60,29 +59,29 @@ class ToolSelect(discord.ui.Select):
         
         embed = discord.Embed(
             title=f"🛠️ {tool} Commands",
-            description=f"**Here are the commands you can use:**\n\n{cmds}",
-            color=0xffcc00
+            description=f"**Commands:**\n{cmds}",
+            color=0x2b2d31
         )
-        # Keeps the dropdown there so they can look at other tools!
+        embed.set_footer(text="powered by badnam development tm || developed and designed by subhransudey")
         await interaction.response.edit_message(embed=embed)
 
 class CategorySelect(discord.ui.Select):
     def __init__(self):
         options = [discord.SelectOption(label=cat, emoji=cat.split(" ")[0]) for cat in COMMANDS_DB.keys()]
-        super().__init__(placeholder="> Select a Category...", options=options)
+        super().__init__(placeholder="> Choose a Specific Module...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         category = self.values[0]
         
-        # Swaps out the main dropdown for the new tool dropdown
         view = discord.ui.View(timeout=180)
         view.add_item(ToolSelect(category))
         
         embed = discord.Embed(
-            title=f"{category} Tools",
-            description=f"You opened the **{category}** menu.\n\n👇 Now select a specific tool below to see its commands!",
-            color=0xffcc00
+            title=f"{category}",
+            description=f"You selected **{category}**.\n\n👇 Pick a specific module below to view commands.",
+            color=0x2b2d31
         )
+        embed.set_footer(text="powered by badnam development tm || developed and designed by subhransudey")
         await interaction.response.edit_message(embed=embed, view=view)
 
 class HelpView(discord.ui.View):
@@ -96,13 +95,26 @@ class Help(commands.Cog):
 
     @commands.command(name="help")
     async def custom_help(self, ctx):
+        # Calculate total commands dynamically just to be accurate
+        total_cmds = sum(len(cmds.split(',')) for cats in COMMANDS_DB.values() for cmds in cats.values())
+
         embed = discord.Embed(
-            title="BADNAM Command Center",
-            description="**My Prefix:** `b!`\n\n👇 Use the dropdown menu below to select a category (Security, Management, etc.) to get started.",
-            color=0xffcc00
+            title="Hey , I'm badnam™",
+            description=(
+                "A powerful multipurpose bot with Fastest Antinuke\n"
+                "**My Prefix is:** `?`\n"
+                f"**Total Commands:** `{total_cmds}+`\n"
+                "Choose a Specific Module of your Desire\n"
+                "\n.\n.\n.\n.\n.\n\n"
+                "**[invite me](https://discord.com/oauth2) || [support server](https://discord.gg/yourlink) || [website](https://badnam.com)**"
+            ),
+            color=0x2b2d31
         )
+        
         if self.bot.user.avatar:
             embed.set_thumbnail(url=self.bot.user.avatar.url)
+            
+        embed.set_footer(text="powered by badnam development tm || developed and designed by subhransudey")
             
         await ctx.send(embed=embed, view=HelpView())
 
