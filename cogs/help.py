@@ -62,7 +62,7 @@ class ToolSelect(discord.ui.Select):
             description=f"**Commands:**\n{cmds}",
             color=0x2b2d31
         )
-        embed.set_footer(text="powered by badnam development tm || developed and designed by subhransudey")
+        embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
         await interaction.response.edit_message(embed=embed)
 
 class CategorySelect(discord.ui.Select):
@@ -81,7 +81,7 @@ class CategorySelect(discord.ui.Select):
             description=f"You selected **{category}**.\n\n👇 Pick a specific module below to view commands.",
             color=0x2b2d31
         )
-        embed.set_footer(text="powered by badnam development tm || developed and designed by subhransudey")
+        embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
         await interaction.response.edit_message(embed=embed, view=view)
 
 class HelpView(discord.ui.View):
@@ -95,18 +95,22 @@ class Help(commands.Cog):
 
     @commands.command(name="help")
     async def custom_help(self, ctx):
-        # Calculate total commands dynamically just to be accurate
+        # Calculate total commands dynamically
         total_cmds = sum(len(cmds.split(',')) for cats in COMMANDS_DB.values() for cmds in cats.values())
 
         embed = discord.Embed(
-            title="Hey , I'm badnam™",
+            title="Hey, I'm BADNAM™",
             description=(
-                "A powerful multipurpose bot with Fastest Antinuke\n"
+                "A powerful multipurpose bot with the fastest Antinuke.\n"
                 "**My Prefix is:** `?`\n"
-                f"**Total Commands:** `{total_cmds}+`\n"
-                "Choose a Specific Module of your Desire\n"
-                "\n.\n.\n.\n.\n.\n\n"
-                "**[invite me](https://discord.com/oauth2) || [support server](https://discord.gg/yourlink) || [website](https://badnam.com)**"
+                f"**Total Commands:** `{total_cmds}+`\n\n"
+                "**Choose a Specific Module of your Desire:**\n"
+                "> 🛡️ **Security**\n"
+                "> ⚙️ **Management**\n"
+                "> 💬 **Messaging**\n"
+                "> ✨ **Games**\n"
+                "> 🎵 **Music**\n\n"
+                "**[Invite Me](https://discord.com/oauth2) | [Support Server](https://discord.gg/yourlink) | [Website](https://badnam.com)**"
             ),
             color=0x2b2d31
         )
@@ -114,7 +118,7 @@ class Help(commands.Cog):
         if self.bot.user.avatar:
             embed.set_thumbnail(url=self.bot.user.avatar.url)
             
-        embed.set_footer(text="powered by badnam development tm || developed and designed by subhransudey")
+        embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
             
         await ctx.send(embed=embed, view=HelpView())
 
