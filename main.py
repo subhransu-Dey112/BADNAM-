@@ -2,7 +2,9 @@ import discord
 from discord.ext import commands
 import json
 import os
+import asyncio
 
+# This function reads the prefix from your prefixes.json file
 def get_prefix(bot, message):
     if not os.path.exists('prefixes.json'):
         return 'b!'
@@ -15,19 +17,23 @@ def get_prefix(bot, message):
 
 intents = discord.Intents.default()
 intents.message_content = True
+
 bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}')
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 
-# This loads the help.py file
-async def setup():
-    await bot.load_extension('help')
+async def load_cogs():
+    # This specifically looks inside your 'cogs' folder
+    await bot.load_extension('cogs.help')
 
-import asyncio
-async def run_bot():
-    await setup()
-    await bot.start('YOUR_BOT_TOKEN_HERE')
+async def main():
+    async with bot:
+        await load_cogs()
+        # This pulls your token from your GitHub/Hosting secret settings
+        # You do NOT type your token here
+        await bot.start(os.environ['DISCORD_TOKEN'])
 
-asyncio.run(run_bot())
+if __name__ == '__main__':
+    asyncio.run(main())
