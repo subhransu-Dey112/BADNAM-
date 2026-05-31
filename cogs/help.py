@@ -123,7 +123,7 @@ class Help(commands.Cog):
                 "> 💬 **Messaging**\n"
                 "> ✨ **Games**\n"
                 "> 🎵 **Music**\n\n"
-                "**[Invite Me](https://discord.com/oauth2) | [Support Server](https://discord.gg/yourlink) | [Website](https://badnam.com)**"
+                "**[Invite Me](https://discord.com/oauth2/authorize?client_id=1509404143712993441&permissions=8&integration_type=0&scope=bot+applications.commands) | [Support Server](https://discord.gg/hxJqvcEeBC) | [Website](https://badnam.com)**"
             ),
             color=0x2b2d31
         )
