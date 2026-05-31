@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import json
 
-# The 221-command database
+# The complete 221-command database
 COMMANDS_DB = {
     "🛡️ SECURITY": {
         "Anti-Nuke": "b!setup, b!antinuke enable/disable, b!antinuke dynamic, b!setlimit, b!quarantine, b!unquarantine, b!panic, b!unpanic, b!backup, b!trusted, b!extraowner, b!sanitize",
