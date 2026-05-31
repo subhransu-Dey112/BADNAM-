@@ -4,7 +4,6 @@ import json
 import os
 import asyncio
 
-# Setup prefix system
 def get_prefix(bot, message):
     if not os.path.exists('prefixes.json'): return 'b!'
     with open('prefixes.json', 'r') as f:
@@ -17,12 +16,14 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 
+# CRITICAL: This removes the default help so your custom one works
+bot.remove_command('help')
+
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print(f'Logged in as {bot.user}')
 
 async def load_extensions():
-    # Automatically finds and loads every .py file in your 'cogs' folder
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py') and filename != '__init__.py':
             try:
@@ -34,7 +35,6 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
-        # This pulls the token from your GitHub Secrets
         await bot.start(os.environ['DISCORD_TOKEN'])
 
 if __name__ == '__main__':
