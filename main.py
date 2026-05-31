@@ -1,84 +1,33 @@
 import discord
 from discord.ext import commands
+import json
 import os
-import asyncio
-from flask import Flask
-from threading import Thread
 
-# 1. Setup Intents
-intents = discord.Intents.all()
+def get_prefix(bot, message):
+    if not os.path.exists('prefixes.json'):
+        return 'b!'
+    with open('prefixes.json', 'r') as f:
+        try:
+            prefixes = json.load(f)
+            return prefixes.get(str(message.guild.id), 'b!')
+        except:
+            return 'b!'
 
-# 2. Initialize the Bot
-bot = commands.Bot(command_prefix="b!", intents=intents, help_command=None)
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 
-# 3. Web Server Patch (To fix the "No open ports detected" error from image_5be95e.png)
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "BADNAM Bot is alive!"
-
-def run_web_server():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
-
-# Start the web server in a background thread
-Thread(target=run_web_server).start()
-
-# 4. Master List of All Loaded Modules (Cogs)
-initial_extensions = [
-    "cogs.antinuke",
-    "cogs.automod",
-    "cogs.verification",
-    "cogs.moderation",
-    "cogs.tickets",
-    "cogs.advanced_security",
-    "cogs.ai_automod",
-    "cogs.welcome",
-    "cogs.protections",
-    "cogs.enterprise",
-    "cogs.utilities",
-    "cogs.advanced_leveling",
-    "cogs.economy",
-    "cogs.logging",
-    "cogs.music",
-    "cogs.voice",
-    "cogs.events",
-    "cogs.recovery",
-    "cogs.automations",
-    "cogs.counters",
-    "cogs.help"
-]
-
-# 5. Boot Sequence
 @bot.event
 async def on_ready():
-    print("========================================")
-    print(f"✅ SYSTEM ONLINE: {bot.user.name} is fully armed!")
-    print(f"🤖 Loaded {len(bot.cogs)} master modules successfully.")
-    print("========================================")
-    
-    await bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.watching, 
-            name="over the server | b!help"
-        )
-    )
+    print(f'Logged in as {bot.user}')
 
-# 6. Async Execution
-async def main():
-    for extension in initial_extensions:
-        try:
-            await bot.load_extension(extension)
-            print(f"⚙️ Loaded: {extension}")
-        except Exception as e:
-            print(f"❌ Failed to load {extension}: {e}")
+# This loads the help.py file
+async def setup():
+    await bot.load_extension('help')
 
-    token = os.environ.get("DISCORD_TOKEN")
-    if not token:
-        print("🛑 CRITICAL ERROR: DISCORD_TOKEN environment variable not found!")
-        return
+import asyncio
+async def run_bot():
+    await setup()
+    await bot.start('YOUR_BOT_TOKEN_HERE')
 
-    await bot.start(token)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(run_bot())
