@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import os
 import asyncio
+from keep_alive import keep_alive
 
 # Setup prefix system
 def get_prefix(bot, message):
@@ -37,8 +38,9 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
-        # This pulls the token from your GitHub Secrets
+        # This pulls the token from your Render Environment Variables
         await bot.start(os.environ['DISCORD_TOKEN'])
 
 if __name__ == '__main__':
+    keep_alive() # Starts the web server to bypass Render's port scan
     asyncio.run(main())
