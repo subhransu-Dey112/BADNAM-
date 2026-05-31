@@ -4,6 +4,7 @@ import json
 import os
 import asyncio
 
+# Setup prefix system
 def get_prefix(bot, message):
     if not os.path.exists('prefixes.json'): return 'b!'
     with open('prefixes.json', 'r') as f:
@@ -21,9 +22,10 @@ bot.remove_command('help')
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}')
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 
 async def load_extensions():
+    # Automatically finds and loads every .py file in your 'cogs' folder
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py') and filename != '__init__.py':
             try:
@@ -35,8 +37,8 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
+        # This pulls the token from your GitHub Secrets
         await bot.start(os.environ['DISCORD_TOKEN'])
 
 if __name__ == '__main__':
     asyncio.run(main())
-                 
