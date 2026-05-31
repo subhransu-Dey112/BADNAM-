@@ -1,49 +1,29 @@
 import discord
 from discord.ext import commands
 
-# Command Database
+# The Master Command Database
 COMMANDS_DB = {
-    "🛡️ SECURITY": {
-        "Antinuke": "`b!setup`, `b!antinuke`, `b!panic`",
-        "Automod": "`b!automod`, `b!blackwords`, `b!antispam`",
-        "Quarantine": "`b!quarantine`, `b!unquarantine`",
-        "Adv. Security": "`b!whois`, `b!anpanic`",
-        "Enterprise Intel": "`b!proxyblocker`, `b!threatmesh`",
-        "AI AutoMod": "`b!ai-mod toxicity`"
+    "🛡️ FLOOR 1: SECURITY": {
+        "Anti-Nuke": "b!setup, b!antinuke enable/disable, b!antinuke dynamic, b!setlimit, b!quarantine, b!unquarantine, b!panic, b!unpanic, b!backup create/restore, b!trusted add, b!extraowner set, b!sanitize bots/links",
+        "AutoMod": "b!automod enable/disable/punishment, b!automod log set/reset/show, b!blackwords add/remove/list, b!antispam enable/limit/duplicate, b!antilink enable/whitelist, b!antiinvite enable/allow-internal, b!automod regex/zalgo/mass-emoji/line-split, b!antimention, b!anticaps, b!antifile",
+        "Advanced Security": "b!whois, b!systempanic, b!sanitize all, b!anpanic, b!antinukelog set/reset, b!quarantinerole create",
+        "Protections": "b!antidelete channels/roles, b!antibot enable/action, b!antiwebhook, b!trustscore, b!webhook-intercept",
+        "Enterprise Intelligence": "b!proxyblocker, b!threatmesh, b!autoquarantine, b!overrideowner, b!bypasscheck, b!strictmode, b!rolemonitor, b!vanityprotect, b!dmreasons",
+        "AI AutoMod": "b!ai-mod toxicity, b!ai-mod scam-detection, b!ai-mod image, b!automodlog set, b!automodwhitelist add"
     },
-    "⚙️ MANAGEMENT": {
-        "Tickets": "`b!ticket`, `b!panel`",
-        "Custom Roles": "`b!role add`",
-        "Levels": "`b!rank`, `b!leaderboard`",
-        "VC Levels": "`b!vclevel`",
-        "Msg Count": "`b!msgcount`",
-        "VC Count": "`b!vccount`",
-        "Invite Count": "`b!invites`",
-        "AutoRole": "`b!autorole`",
-        "Join to Create": "`b!jtc`",
-        "Logging": "`b!autologs`",
-        "Verification": "`b!verify`",
-        "Moderation": "`b!ban`, `b!kick`, `b!mute`",
-        "Giveaway": "`b!giveaway`",
-        "General": "`b!ping`, `b!info`"
+    "🔨 FLOOR 2: ADMINISTRATION": {
+        "Moderation": "b!ban, b!softban, b!hackban, b!unban, b!kick, b!timeout, b!untimeout, b!mute, b!unmute, b!tempmute, b!tempban, b!warn, b!warnings, b!delwarn, b!clearwarns, b!reason, b!purge (user/match/embeds/attachments/bots), b!slowmode, b!lock/unlock, b!note add/view/delete",
+        "Tickets & Support": "b!ticket enable/disable/add/remove/close/reopen/delete/rename/transcript/list, b!panel create/list/delete/button/message, b!autothread enable/disable/channel add/remove, b!modmail setup/reply/block",
+        "Verification": "b!verification enable/disable/setup_role/setup_channel/type/set_verified/reset, b!captcha, b!verify, b!joingate (age/avatar/vpn/action), b!antiraid (sensitivity/join-limit/action), b!username-filter add/list",
+        "Recovery": "b!recoverysetup, b!verifychannel, b!verifyrole, b!oauthlink, b!recoverylogs, b!recoverymsg, b!pull, b!pullall, b!stoppull, b!tokenrefresh, b!authusers, b!authcheck, b!authremove, b!authblacklist, b!authclean, b!authexport, b!recoverywl, b!recoverpremium"
     },
-    "💬 MESSAGING": {
-        "Sticky": "`b!sticky`",
-        "Welcome": "`b!welcome`",
-        "Leave": "`b!leave`",
-        "Boost": "`b!boost`",
-        "Auto Respond": "`b!autorespond`"
-    },
-    "✨ GAMES": {
-        "Pfp Event": "`b!pfpevent`",
-        "Slots": "`b!slots`",
-        "Auto React": "`b!autoreact`",
-        "Economy": "`b!bal`, `b!work`",
-        "Utils": "`b!utils`"
-    },
-    "🎵 MUSIC": {
-        "Music": "`b!play`, `b!skip`",
-        "Voice": "`b!vc`"
+    "📈 FLOOR 3: GROWTH": {
+        "Utilities": "b!embed create, b!rr setup, b!tag add/list, b!role add/all, b!channel clone, b!poll, b!afk",
+        "Leveling": "b!rank, b!leaderboard, b!levelconfig xprate/reward, b!vclevel enable, b!xp add",
+        "Economy": "b!balance, b!work, b!daily, b!crime, b!deposit, b!withdraw, b!shop, b!buy, b!slots, b!roulette, b!blackjack, b!meme, b!pokemon, b!addmoney",
+        "Music & Voice": "b!play, b!stop, b!pause, b!skip, b!queue, b!loop, b!volume, b!filter, b!autovoice setup, b!vc lock/unlock/kick, b!vcrole set",
+        "Events & Counters": "b!giveaway start/reroll, b!starboard, b!suggest, b!suggestion approve, b!leave enable, b!boostmessage enable, b!invites, b!messagescount show, b!voicecount show, b!avatar, b!banner",
+        "Automation & Misc": "b!autorespond add, b!autoreact add, b!sticky add, b!autologs enable/setup/set, b!cases, b!diagnose, b!stats, b!help"
     }
 }
 
@@ -51,51 +31,32 @@ class ToolSelect(discord.ui.Select):
     def __init__(self, category, main_embed):
         self.category = category
         self.main_embed = main_embed
-        
-        # Load tools and add the "Back" button at the bottom
         options = [discord.SelectOption(label=tool) for tool in COMMANDS_DB[category].keys()]
         options.append(discord.SelectOption(label="Back", description="Return to main menu", emoji="↩️"))
-        
-        super().__init__(placeholder="> Select a module...", options=options)
+        super().__init__(placeholder="> Select a specific module...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        # If they hit Back, show the main embed again
         if self.values[0] == "Back":
             await interaction.response.edit_message(embed=self.main_embed, view=HelpView(self.main_embed))
             return
-
         tool = self.values[0]
         cmds = COMMANDS_DB[self.category][tool]
-        
-        embed = discord.Embed(
-            title=f"🛠️ {tool} Commands",
-            description=f"**Commands:**\n{cmds}",
-            color=0x2b2d31
-        )
-        embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
+        embed = discord.Embed(title=f"🛠️ {tool} Commands", description=f"**Usage:**\n{cmds}", color=0x2b2d31)
+        embed.set_footer(text="Powered by BADNAM Development™ | Developed by subhransudey")
         await interaction.response.edit_message(embed=embed)
 
 class CategorySelect(discord.ui.Select):
     def __init__(self, main_embed):
         self.main_embed = main_embed
         options = [discord.SelectOption(label=cat, emoji=cat.split(" ")[0]) for cat in COMMANDS_DB.keys()]
-        super().__init__(placeholder="> Choose a Specific Module...", options=options)
+        super().__init__(placeholder="> Choose a Floor to begin...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         category = self.values[0]
-        
-        view = discord.ui.View(timeout=180)
-        view.add_item(ToolSelect(category, self.main_embed))
-        
-        # Lists out the tools nicely under the text instead of dots
-        tools_list = "\n".join([f"> 🔹 **{tool}**" for tool in COMMANDS_DB[category].keys()])
-        
-        embed = discord.Embed(
-            title=f"{category}",
-            description=f"You selected **{category}**.\n\n👇 Pick a specific module below to view commands:\n\n{tools_list}",
-            color=0x2b2d31
-        )
-        embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
+        view = discord.ui.View(timeout=180).add_item(ToolSelect(category, self.main_embed))
+        tools = "\n".join([f"> 🔹 **{t}**" for t in COMMANDS_DB[category].keys()])
+        embed = discord.Embed(title=f"{category}", description=f"You selected **{category}**.\n\n👇 Pick a module below to view commands:\n\n{tools}", color=0x2b2d31)
+        embed.set_footer(text="Powered by BADNAM Development™ | Developed by subhransudey")
         await interaction.response.edit_message(embed=embed, view=view)
 
 class HelpView(discord.ui.View):
@@ -109,31 +70,22 @@ class Help(commands.Cog):
 
     @commands.command(name="help")
     async def custom_help(self, ctx):
-        total_cmds = sum(len(cmds.split(',')) for cats in COMMANDS_DB.values() for cmds in cats.values())
-
         embed = discord.Embed(
             title="Hey, I'm BADNAM™",
             description=(
                 "A powerful multipurpose bot with the fastest Antinuke.\n"
-                "**My Prefix is:** `?`\n"
-                f"**Total Commands:** `{total_cmds}+`\n\n"
-                "**Choose a Specific Module of your Desire:**\n"
-                "> 🛡️ **Security**\n"
-                "> ⚙️ **Management**\n"
-                "> 💬 **Messaging**\n"
-                "> ✨ **Games**\n"
-                "> 🎵 **Music**\n\n"
+                "**My Prefix is:** `b!`\n"
+                "**Total Commands:** `221+`\n\n"
+                "**Choose a Floor to view modules:**\n"
+                "> 🛡️ **FLOOR 1: SECURITY & DEFENSE**\n"
+                "> 🔨 **FLOOR 2: ADMINISTRATION & SUPPORT**\n"
+                "> 📈 **FLOOR 3: GROWTH & INTERACTION**\n\n"
                 "**[Invite Me](https://discord.com/oauth2/authorize?client_id=1509404143712993441&permissions=8&integration_type=0&scope=bot+applications.commands) | [Support Server](https://discord.gg/hxJqvcEeBC) | [Website](https://badnam.com)**"
             ),
             color=0x2b2d31
         )
-        
-        if self.bot.user.avatar:
-            embed.set_thumbnail(url=self.bot.user.avatar.url)
-            
-        embed.set_footer(text="Powered by BADNAM Development™ | Developed and designed by subhransudey")
-            
-        # We pass the embed into the view so the "Back" button can use it later
+        if self.bot.user.avatar: embed.set_thumbnail(url=self.bot.user.avatar.url)
+        embed.set_footer(text="Powered by BADNAM Development™ | Developed by subhransudey")
         await ctx.send(embed=embed, view=HelpView(embed))
 
 async def setup(bot):
