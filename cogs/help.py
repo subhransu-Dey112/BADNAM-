@@ -1,17 +1,17 @@
 import discord
 from discord.ext import commands
 
-# The 2-Tier Command Database
+# The 2-Tier Command Database - Now with Premium Styling
 COMMANDS_DB = {
     "sec": {
         "title": "🛡️ SECURITY",
         "emoji": "🛡️",
         "modules": {
-            "Anti-Nuke": "b!setup, b!antinuke enable/disable, b!antinuke dynamic, b!setlimit, b!quarantine, b!unquarantine",
-            "AutoMod": "b!automod enable/disable, b!blackwords, b!antispam, b!antilink, b!antiinvite",
-            "Advanced": "b!whois, b!systempanic, b!anpanic, b!antinukelog, b!quarantinerole",
-            "Protections": "b!antidelete, b!antibot, b!antiwebhook, b!trustscore, b!webhook-intercept",
-            "AI AutoMod": "b!ai-mod toxicity/scam/image, b!automodlog, b!automodwhitelist"
+            "Anti-Nuke": "`b!setup`, `b!antinuke`, `b!setlimit`, `b!quarantine`, `b!panic`, `b!backup`, `b!trusted`",
+            "AutoMod": "`b!automod`, `b!blackwords`, `b!antispam`, `b!antilink`, `b!antiinvite`",
+            "Advanced": "`b!whois`, `b!systempanic`, `b!anpanic`, `b!antinukelog`, `b!quarantinerole`",
+            "Protections": "`b!antidelete`, `b!antibot`, `b!antiwebhook`, `b!trustscore`, `b!webhook-intercept`",
+            "AI AutoMod": "`b!ai-mod`, `b!automodlog`, `b!automodwhitelist`"
         }
     },
     "man": {
@@ -19,59 +19,59 @@ COMMANDS_DB = {
         "emoji": "⚙️",
         "modules": {
             "Moderation": (
-                "b!kick [@user]       :: Kicks a member from server\n"
-                "b!ban [@user]        :: Permanently bans a member\n"
-                "b!unban [ID]         :: Unbans a user via their ID\n"
-                "b!mute [@user] [min] :: Times out a member\n"
-                "b!unmute [@user]     :: Removes a timeout early\n"
-                "b!warn [@user]       :: Adds a warning to a member\n"
-                "b!warn list [@user]  :: Views a member's warnings\n"
-                "b!warn clear [@user] :: Clears a member's warnings\n"
-                "b!nick [@user] [name]:: Changes a member's nickname\n"
-                "b!role [@user] [role]:: Toggles a role on a user\n"
-                "b!purge [amount]     :: Mass deletes messages\n"
-                "b!purge user [@user] :: Deletes a specific user's msgs\n"
-                "b!snipe              :: Recalls last deleted message"
+                "> 👢 `b!kick [@user]` • Kicks a member\n"
+                "> 🔨 `b!ban [@user]` • Permanently bans a member\n"
+                "> 🕊️ `b!unban [ID]` • Unbans a user via ID\n"
+                "> ⏱️ `b!mute [@user] [m]` • Times out a member\n"
+                "> 🔊 `b!unmute [@user]` • Removes a timeout early\n"
+                "> ⚠️ `b!warn [@user]` • Adds a warning to a member\n"
+                "> 📋 `b!warn list [@user]` • Views a member's warnings\n"
+                "> 🗑️ `b!warn clear [@user]` • Clears a member's warnings\n"
+                "> 🏷️ `b!nick [@user] [name]` • Changes a nickname\n"
+                "> 🎭 `b!role [@user] [@role]` • Toggles a role on a user\n"
+                "> 🧹 `b!purge [amount]` • Mass deletes messages\n"
+                "> 👤 `b!purge user [@user]` • Deletes user's msgs\n"
+                "> 🎯 `b!snipe` • Recalls last deleted message"
             ),
             "Server & Channel": (
-                "b!lock               :: Prevents typing in channel\n"
-                "b!unlock             :: Allows typing in channel\n"
-                "b!hide               :: Makes channel invisible\n"
-                "b!unhide             :: Makes channel visible\n"
-                "b!nuke               :: Clones and wipes the channel\n"
-                "b!lockall            :: Locks ALL text channels\n"
-                "b!unlockall          :: Unlocks ALL text channels\n"
-                "b!hideall            :: Hides ALL text channels\n"
-                "b!unhideall          :: Unhides ALL text channels\n"
-                "b!roleall [@role]    :: Gives role to ALL humans\n"
-                "b!unmuteall          :: Unmutes everyone in your VC"
+                "> 🔒 `b!lock` • Prevents typing in channel\n"
+                "> 🔓 `b!unlock` • Allows typing in channel\n"
+                "> 👻 `b!hide` • Makes channel invisible\n"
+                "> 👁️ `b!unhide` • Makes channel visible\n"
+                "> ☢️ `b!nuke` • Clones and wipes the channel\n"
+                "> 🛑 `b!lockall` • Locks ALL text channels\n"
+                "> 🟢 `b!unlockall` • Unlocks ALL text channels\n"
+                "> 🙈 `b!hideall` • Hides ALL text channels\n"
+                "> 🐵 `b!unhideall` • Unhides ALL text channels\n"
+                "> 👥 `b!roleall [@role]` • Gives role to ALL humans\n"
+                "> 🎙️ `b!unmuteall` • Unmutes everyone in VC"
             ),
-            "Tickets": "b!ticket enable/close/transcript, b!panel create/button, b!autothread, b!modmail",
-            "Verification": "b!verification setup, b!captcha, b!verify, b!joingate, b!antiraid, b!username-filter"
+            "Tickets": "`b!ticket`, `b!panel`, `b!autothread`, `b!modmail`",
+            "Verification": "`b!verification`, `b!captcha`, `b!verify`, `b!joingate`, `b!antiraid`"
         }
     },
     "msg": {
         "title": "💬 MESSAGING",
         "emoji": "💬",
         "modules": {
-            "Essentials": "b!sticky, b!welcome, b!leave, b!boostmessage",
-            "Interaction": "b!autorespond, b!autoreact, b!suggest, b!starboard"
+            "Essentials": "`b!sticky`, `b!welcome`, `b!leave`, `b!boostmessage`",
+            "Interaction": "`b!autorespond`, `b!autoreact`, `b!suggest`, `b!starboard`"
         }
     },
     "gam": {
         "title": "✨ GAMES",
         "emoji": "✨",
         "modules": {
-            "Economy": "b!balance, b!work, b!daily, b!crime, b!shop, b!slots, b!roulette, b!blackjack",
-            "Utils": "b!embed, b!rr setup, b!tag, b!channel, b!poll, b!afk"
+            "Economy": "`b!balance`, `b!work`, `b!daily`, `b!crime`, `b!shop`, `b!slots`, `b!roulette`",
+            "Utils": "`b!embed`, `b!rr setup`, `b!tag`, `b!channel`, `b!poll`, `b!afk`"
         }
     },
     "mus": {
         "title": "🎵 MUSIC",
         "emoji": "🎵",
         "modules": {
-            "Playback": "b!play, b!stop, b!pause, b!skip, b!queue, b!loop, b!volume",
-            "Voice": "b!autovoice, b!vc lock/unlock/kick"
+            "Playback": "`b!play`, `b!stop`, `b!pause`, `b!skip`, `b!queue`, `b!loop`, `b!volume`",
+            "Voice": "`b!autovoice`, `b!vc lock/unlock/kick`"
         }
     }
 }
@@ -98,9 +98,10 @@ class ModuleDropdown(discord.ui.Select):
         mod_name = self.values[0]
         commands_str = self.data["modules"][mod_name]
         
+        # REMOVED THE UGLY CODE BLOCK ``` AND ADDED CLEAN SPACING
         embed = discord.Embed(
             title=f"{self.data['emoji']} {mod_name.upper()}",
-            description=f"Here are the commands for **{mod_name}**:\n\n```{commands_str}```",
+            description=f"Here are the commands for **{mod_name}**:\n\n{commands_str}",
             color=0x2b2d31
         )
         
