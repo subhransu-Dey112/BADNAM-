@@ -18,14 +18,36 @@ COMMANDS_DB = {
         "title": "⚙️ MANAGEMENT",
         "emoji": "⚙️",
         "modules": {
+            "Moderation": (
+                "b!kick [@user]       :: Kicks a member from server\n"
+                "b!ban [@user]        :: Permanently bans a member\n"
+                "b!unban [ID]         :: Unbans a user via their ID\n"
+                "b!mute [@user] [min] :: Times out a member\n"
+                "b!unmute [@user]     :: Removes a timeout early\n"
+                "b!warn [@user]       :: Adds a warning to a member\n"
+                "b!warn list [@user]  :: Views a member's warnings\n"
+                "b!warn clear [@user] :: Clears a member's warnings\n"
+                "b!nick [@user] [name]:: Changes a member's nickname\n"
+                "b!role [@user] [role]:: Toggles a role on a user\n"
+                "b!purge [amount]     :: Mass deletes messages\n"
+                "b!purge user [@user] :: Deletes a specific user's msgs\n"
+                "b!snipe              :: Recalls last deleted message"
+            ),
+            "Server & Channel": (
+                "b!lock               :: Prevents typing in channel\n"
+                "b!unlock             :: Allows typing in channel\n"
+                "b!hide               :: Makes channel invisible\n"
+                "b!unhide             :: Makes channel visible\n"
+                "b!nuke               :: Clones and wipes the channel\n"
+                "b!lockall            :: Locks ALL text channels\n"
+                "b!unlockall          :: Unlocks ALL text channels\n"
+                "b!hideall            :: Hides ALL text channels\n"
+                "b!unhideall          :: Unhides ALL text channels\n"
+                "b!roleall [@role]    :: Gives role to ALL humans\n"
+                "b!unmuteall          :: Unmutes everyone in your VC"
+            ),
             "Tickets": "b!ticket enable/close/transcript, b!panel create/button, b!autothread, b!modmail",
-            "Custom Roles": "b!autorole, b!vcrole, b!joinrole",
-            "Levels": "b!rank, b!levelconfig, b!xp",
-            "Logging": "b!autologs, b!cases, b!diagnose",
-            "Verification": "b!verification setup, b!captcha, b!verify, b!joingate, b!antiraid, b!username-filter",
-            "Moderation": "b!ban, b!softban, b!hackban, b!unban, b!kick, b!timeout, b!mute, b!warn, b!purge",
-            "Giveaway": "b!giveaway start/reroll/end, b!greroll",
-            "General": "b!ping, b!stats, b!uptime, b!invite"
+            "Verification": "b!verification setup, b!captcha, b!verify, b!joingate, b!antiraid, b!username-filter"
         }
     },
     "msg": {
@@ -41,7 +63,7 @@ COMMANDS_DB = {
         "emoji": "✨",
         "modules": {
             "Economy": "b!balance, b!work, b!daily, b!crime, b!shop, b!slots, b!roulette, b!blackjack",
-            "Utils": "b!embed, b!rr setup, b!tag, b!role, b!channel, b!poll, b!afk"
+            "Utils": "b!embed, b!rr setup, b!tag, b!channel, b!poll, b!afk"
         }
     },
     "mus": {
@@ -69,12 +91,10 @@ class ModuleDropdown(discord.ui.Select):
         super().__init__(placeholder="> Select a module...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        # If they click Go Back, return to the Main Menu
         if self.values[0] == "back":
             await interaction.response.edit_message(embed=self.main_embed, view=MainView(self.main_embed))
             return
 
-        # Show the commands for the selected module
         mod_name = self.values[0]
         commands_str = self.data["modules"][mod_name]
         
@@ -91,7 +111,6 @@ class ModuleDropdown(discord.ui.Select):
             icon_url=interaction.client.user.avatar.url if interaction.client.user.avatar else None
         )
         
-        # Keep them in the ModuleView so they can check other modules in the same category
         await interaction.response.edit_message(embed=embed, view=ModuleView(self.category_key, self.main_embed))
 
 class ModuleView(discord.ui.View):
@@ -116,9 +135,7 @@ class MainDropdown(discord.ui.Select):
         category_key = self.values[0]
         data = COMMANDS_DB[category_key]
         
-        # Build the beautiful blockquote list exactly like your screenshot
         desc = f"You selected {data['emoji']} **{data['title'].replace(data['emoji'] + ' ', '')}**.\n\n👇 Pick a specific module below to view commands:\n\n>>> "
-        
         for mod_name in data["modules"].keys():
             desc += f"🔹 **{mod_name}**\n"
             
@@ -135,7 +152,6 @@ class MainDropdown(discord.ui.Select):
             icon_url=interaction.client.user.avatar.url if interaction.client.user.avatar else None
         )
         
-        # Switch the dropdown to the Module Selection view
         await interaction.response.edit_message(embed=embed, view=ModuleView(category_key, self.main_embed))
 
 class MainView(discord.ui.View):
