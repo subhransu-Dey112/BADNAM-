@@ -1,165 +1,71 @@
 import discord
 from discord.ext import commands
+import datetime
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # 🔨 CORE PUNISHMENTS
-    @commands.command(name="ban")
-    @commands.has_permissions(ban_members=True)
-    async def ban(self, ctx, user: discord.Member, *, reason="No reason provided."):
-        await ctx.send(f"🔨 **{user.mention}** has been banned. Reason: {reason}")
+    # --- PURGE COMMAND ---
+    @commands.command(name="purge", aliases=["clear", "clean"])
+    @commands.has_permissions(manage_messages=True)
+    async def purge(self, ctx, amount: int):
+        """Deletes a specified number of messages."""
+        # limit=amount+1 so it deletes the user's command message too
+        deleted = await ctx.channel.purge(limit=amount + 1)
+        # Sends a success message that automatically deletes itself after 3 seconds
+        await ctx.send(f"✅ Successfully deleted {len(deleted)-1} messages.", delete_after=3)
 
-    @commands.command(name="softban")
-    @commands.has_permissions(ban_members=True)
-    async def softban(self, ctx, user: discord.Member, *, reason="No reason provided."):
-        await ctx.send(f"🧹 **{user.mention}** was softbanned (banned and instantly unbanned to clear messages).")
-
-    @commands.command(name="hackban")
-    @commands.has_permissions(ban_members=True)
-    async def hackban(self, ctx, user_id: int, *, reason="No reason provided."):
-        await ctx.send(f"🥷 User ID **{user_id}** has been hackbanned.")
-
-    @commands.command(name="unban")
-    @commands.has_permissions(ban_members=True)
-    async def unban(self, ctx, user_id: int, *, reason="No reason provided."):
-        await ctx.send(f"✅ User ID **{user_id}** has been unbanned.")
-
+    # --- KICK COMMAND ---
     @commands.command(name="kick")
     @commands.has_permissions(kick_members=True)
-    async def kick(self, ctx, user: discord.Member, *, reason="No reason provided."):
-        await ctx.send(f"👢 **{user.mention}** has been kicked. Reason: {reason}")
+    async def kick(self, ctx, member: discord.Member, *, reason="No reason provided"):
+        """Kicks a member from the server."""
+        if member == ctx.author:
+            return await ctx.send("❌ You cannot kick yourself!")
+            
+        try:
+            await member.kick(reason=reason)
+            await ctx.send(f"👢 **{member.name}** has been kicked. | Reason: {reason}")
+        except discord.Forbidden:
+            await ctx.send("❌ I don't have permission to kick them! Make sure my Bot Role is higher than theirs.")
 
-    @commands.command(name="timeout")
-    @commands.has_permissions(moderate_members=True)
-    async def timeout(self, ctx, user: discord.Member, duration: str, *, reason="No reason provided."):
-        await ctx.send(f"⏱️ **{user.mention}** has been timed out for {duration}. Reason: {reason}")
-
-    @commands.command(name="untimeout")
-    @commands.has_permissions(moderate_members=True)
-    async def untimeout(self, ctx, user: discord.Member):
-        await ctx.send(f"✅ Timeout removed from **{user.mention}**.")
-
-    # 🔇 MUTING SYSTEM
-    @commands.command(name="mute")
-    @commands.has_permissions(manage_roles=True)
-    async def mute(self, ctx, user: discord.Member, duration: str = None, *, reason="No reason provided."):
-        time_text = f" for {duration}" if duration else " permanently"
-        await ctx.send(f"🔇 **{user.mention}** has been muted{time_text}.")
-
-    @commands.command(name="unmute")
-    @commands.has_permissions(manage_roles=True)
-    async def unmute(self, ctx, user: discord.Member):
-        await ctx.send(f"🔊 **{user.mention}** has been unmuted.")
-
-    @commands.command(name="tempmute")
-    @commands.has_permissions(manage_roles=True)
-    async def tempmute(self, ctx, user: discord.Member, duration: str, *, reason="No reason provided."):
-        await ctx.send(f"⏳ **{user.mention}** temporarily muted for {duration}.")
-
-    @commands.command(name="tempban")
+    # --- BAN COMMAND ---
+    @commands.command(name="ban")
     @commands.has_permissions(ban_members=True)
-    async def tempban(self, ctx, user: discord.Member, duration: str, *, reason="No reason provided."):
-        await ctx.send(f"⏳ **{user.mention}** temporarily banned for {duration}.")
+    async def ban(self, ctx, member: discord.Member, *, reason="No reason provided"):
+        """Bans a member from the server."""
+        if member == ctx.author:
+            return await ctx.send("❌ You cannot ban yourself!")
+            
+        try:
+            await member.ban(reason=reason)
+            await ctx.send(f"🔨 **{member.name}** has been banned. | Reason: {reason}")
+        except discord.Forbidden:
+            await ctx.send("❌ I don't have permission to ban them! Make sure my Bot Role is higher than theirs.")
 
-    # ⚠️ WARNINGS & NOTES
-    @commands.command(name="warn")
-    @commands.has_permissions(manage_messages=True)
-    async def warn(self, ctx, user: discord.Member, *, reason="No reason provided."):
-        await ctx.send(f"⚠️ **{user.mention}** has been warned. Reason: {reason}")
+    # --- TIMEOUT / MUTE COMMAND ---
+    @commands.command(name="timeout", aliases=["mute"])
+    @commands.has_permissions(moderate_members=True)
+    async def timeout(self, ctx, member: discord.Member, minutes: int, *, reason="No reason provided"):
+        """Mutes a member for a specified number of minutes."""
+        try:
+            # Converts the number of minutes into a format Discord understands
+            duration = discord.utils.utcnow() + datetime.timedelta(minutes=minutes)
+            await member.timeout(duration, reason=reason)
+            await ctx.send(f"⏱️ **{member.name}** has been muted for {minutes} minutes. | Reason: {reason}")
+        except discord.Forbidden:
+            await ctx.send("❌ I don't have permission to mute them! Make sure my Bot Role is higher than theirs.")
 
-    @commands.command(name="warnings")
-    async def warnings(self, ctx, user: discord.Member):
-        await ctx.send(f"📄 Displaying warning history for **{user.mention}**...")
+    # --- ERROR HANDLING ---
+    # This stops the bot from crashing in the console if a normal user tries to use a mod command
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("❌ You do not have the required permissions to use this command.")
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"❌ You are missing required arguments! Example: `{ctx.prefix}{ctx.command.name} @User`")
 
-    @commands.command(name="delwarn")
-    @commands.has_permissions(manage_messages=True)
-    async def delwarn(self, ctx, warning_id: int):
-        await ctx.send(f"🗑️ Warning ID **{warning_id}** deleted.")
-
-    @commands.command(name="clearwarns")
-    @commands.has_permissions(manage_messages=True)
-    async def clearwarns(self, ctx, user: discord.Member):
-        await ctx.send(f"✨ All warnings cleared for **{user.mention}**.")
-
-    @commands.command(name="reason")
-    @commands.has_permissions(manage_messages=True)
-    async def reason(self, ctx, case_id: int, *, new_reason: str):
-        await ctx.send(f"✏️ Updated case **#{case_id}** reason to: {new_reason}")
-
-    # 🧹 PURGE ENGINE
-    @commands.group(name="purge", invoke_without_command=True)
-    @commands.has_permissions(manage_messages=True)
-    async def purge(self, ctx, amount: int = None):
-        if amount:
-            await ctx.send(f"🧹 Purging **{amount}** messages...")
-        else:
-            await ctx.send("❓ Usage: `b!purge <amount | user | match | embeds | attachments | bots>`")
-
-    @purge.command(name="user")
-    async def purge_user(self, ctx, user: discord.Member, amount: int):
-        await ctx.send(f"🧹 Purging {amount} messages sent by **{user.name}**...")
-
-    @purge.command(name="match")
-    async def purge_match(self, ctx, keyword: str, amount: int):
-        await ctx.send(f"🧹 Purging {amount} messages containing `{keyword}`...")
-
-    @purge.command(name="embeds")
-    async def purge_embeds(self, ctx, amount: int):
-        await ctx.send(f"🧹 Purging {amount} embed messages...")
-
-    @purge.command(name="attachments")
-    async def purge_attachments(self, ctx, amount: int):
-        await ctx.send(f"🧹 Purging {amount} messages with attachments...")
-
-    @purge.command(name="bots")
-    async def purge_bots(self, ctx, amount: int):
-        await ctx.send(f"🧹 Purging {amount} bot messages...")
-
-    # 🔒 CHANNEL CONTROLS
-    @commands.command(name="slowmode")
-    @commands.has_permissions(manage_channels=True)
-    async def slowmode(self, ctx, duration: int):
-        await ctx.send(f"🐢 Slowmode set to **{duration} seconds**.")
-
-    @commands.group(name="lock", invoke_without_command=True)
-    @commands.has_permissions(manage_channels=True)
-    async def lock(self, ctx):
-        await ctx.send("🔒 Channel locked.")
-
-    @lock.command(name="server")
-    @commands.has_permissions(administrator=True)
-    async def lock_server(self, ctx):
-        await ctx.send("🚨 **SERVER LOCKDOWN.** All channels locked.")
-
-    @commands.group(name="unlock", invoke_without_command=True)
-    @commands.has_permissions(manage_channels=True)
-    async def unlock(self, ctx):
-        await ctx.send("🔓 Channel unlocked.")
-
-    @unlock.command(name="server")
-    @commands.has_permissions(administrator=True)
-    async def unlock_server(self, ctx):
-        await ctx.send("🔓 **SERVER UNLOCKED.** All channels reopened.")
-
-    # 📝 ADMINISTRATIVE NOTES
-    @commands.group(name="note", invoke_without_command=True)
-    @commands.has_permissions(manage_messages=True)
-    async def note(self, ctx):
-        pass
-
-    @note.command(name="add")
-    async def note_add(self, ctx, user: discord.Member, *, text: str):
-        await ctx.send(f"📝 Note added to **{user.name}**: {text}")
-
-    @note.command(name="view")
-    async def note_view(self, ctx, user: discord.Member):
-        await ctx.send(f"📂 Fetching staff notes for **{user.name}**...")
-
-    @note.command(name="delete")
-    async def note_delete(self, ctx, note_id: int):
-        await ctx.send(f"🗑️ Note ID **{note_id}** deleted.")
-
+# This is required at the bottom of every cog file
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
