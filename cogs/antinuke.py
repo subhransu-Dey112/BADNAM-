@@ -1,127 +1,174 @@
 import discord
 from discord.ext import commands
+import json
+import os
 
 class AntiNuke(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.db_file = "antinuke_db.json"
+        self._load_db()
 
-    # ⚙️ CORE SETUP
-    @commands.command(name="setup", aliases=["!setup"])
-    @commands.has_permissions(administrator=True)
-    async def setup(self, ctx):
-        await ctx.send("⚙️ **BADNAM Security Wizard:** Initializing core administrative roles and tracking limits...")
+    def _load_db(self):
+        if not os.path.exists(self.db_file):
+            with open(self.db_file, "w") as f:
+                json.dump({}, f)
+        with open(self.db_file, "r") as f:
+            self.db = json.load(f)
 
-    # 🛡️ ANTINUKE TOGGLES
-    @commands.group(name="antinuke", invoke_without_command=True)
+    def _save_db(self):
+        with open(self.db_file, "w") as f:
+            json.dump(self.db, f, indent=4)
+
+    def get_data(self, guild_id):
+        gid = str(guild_id)
+        if gid not in self.db:
+            self.db[gid] = {
+                "enabled": False,
+                "log_channel": None,
+                "log_msg": "🚨 Anti-Nuke Alert!",
+                "whitelist": [],
+                "extra_owners": []
+            }
+        return self.db[gid]
+
+    # --- ANTINUKE TOGGLE ---
+    @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
     async def antinuke(self, ctx):
-        await ctx.send("❓ Usage: `b!antinuke <enable | disable | dynamic>`")
+        await ctx.send("Use `b!antinuke enable` or `b!antinuke disable`")
 
     @antinuke.command(name="enable")
+    @commands.has_permissions(administrator=True)
     async def an_enable(self, ctx):
-        await ctx.send("🛡️ **Master Anti-Nuke:** ENABLED.")
+        data = self.get_data(ctx.guild.id)
+        data["enabled"] = True
+        self._save_db()
+        await ctx.send("✅ **Anti-Nuke is now ENABLED.**")
 
     @antinuke.command(name="disable")
+    @commands.has_permissions(administrator=True)
     async def an_disable(self, ctx):
-        await ctx.send("⚠️ **Master Anti-Nuke:** DISABLED. Server is vulnerable.")
+        data = self.get_data(ctx.guild.id)
+        data["enabled"] = False
+        self._save_db()
+        await ctx.send("❌ **Anti-Nuke is now DISABLED.**")
 
-    @antinuke.command(name="dynamic")
-    async def an_dynamic(self, ctx):
-        await ctx.send("⚡ **Dynamic Mode Active:** Thresholds will auto-adjust based on server velocity.")
-
-    # 📊 RATE LIMITS (SETLIMIT)
-    @commands.group(name="setlimit", invoke_without_command=True)
+    # --- LOGS ---
+    @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
-    async def setlimit(self, ctx):
-        await ctx.send("❓ Usage: `b!setlimit <ban | kick | channel-delete | role-delete> [number] [minutes]`")
+    async def antinukelog(self, ctx):
+        pass
 
-    @setlimit.command(name="ban")
-    async def sl_ban(self, ctx, number: int, minutes: int):
-        await ctx.send(f"✅ Staff can now only issue **{number} bans** every **{minutes} minutes**.")
-
-    @setlimit.command(name="kick")
-    async def sl_kick(self, ctx, number: int, minutes: int):
-        await ctx.send(f"✅ Staff can now only issue **{number} kicks** every **{minutes} minutes**.")
-
-    @setlimit.command(name="channel-delete")
-    async def sl_chandel(self, ctx, number: int, minutes: int):
-        await ctx.send(f"✅ Limit set: **{number} channel deletions** per **{minutes} minutes**.")
-
-    # ☣️ QUARANTINE SYSTEM
-    @commands.group(name="quarantine", invoke_without_command=True)
+    @antinukelog.command(name="set")
     @commands.has_permissions(administrator=True)
-    async def quarantine(self, ctx, user: discord.Member = None):
-        if user:
-            await ctx.send(f"☣️ **{user.mention}** has been stripped of roles and moved to isolation.")
+    async def log_set(self, ctx, channel: discord.TextChannel):
+        data = self.get_data(ctx.guild.id)
+        data["log_channel"] = channel.id
+        self._save_db()
+        await ctx.send(f"✅ Logs set to {channel.mention}")
+
+    @antinukelog.command(name="reset")
+    @commands.has_permissions(administrator=True)
+    async def log_reset(self, ctx):
+        data = self.get_data(ctx.guild.id)
+        data["log_channel"] = None
+        self._save_db()
+        await ctx.send("✅ Log channel reset.")
+
+    @antinukelog.command(name="show")
+    @commands.has_permissions(administrator=True)
+    async def log_show(self, ctx):
+        data = self.get_data(ctx.guild.id)
+        if data["log_channel"]:
+            await ctx.send(f"📡 Current log channel: <#{data['log_channel']}>")
         else:
-            await ctx.send("❓ Usage: `b!quarantine [@user]` or `b!quarantine list`")
+            await ctx.send("❌ No log channel set.")
 
-    @quarantine.command(name="list")
-    async def q_list(self, ctx):
-        await ctx.send("📂 **Quarantined Users:**\nNone currently.")
-
-    @commands.command(name="unquarantine")
+    @antinukelog.command(name="msg")
     @commands.has_permissions(administrator=True)
-    async def unquarantine(self, ctx, user: discord.Member):
-        await ctx.send(f"✅ **{user.mention}** restored to normal status.")
+    async def log_msg(self, ctx, *, message: str):
+        data = self.get_data(ctx.guild.id)
+        data["log_msg"] = message
+        self._save_db()
+        await ctx.send(f"✅ Log message updated to: `{message}`")
 
-    # 🚨 EMERGENCY PANIC
-    @commands.command(name="panic", aliases=["lockdown"])
+    # --- WHITELIST ---
+    @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
-    async def panic(self, ctx):
-        await ctx.send("🚨 **SERVER LOCKDOWN INITIATED.** All channels locked for @everyone.")
+    async def whitelist(self, ctx, member: discord.Member = None):
+        # Adding support to just type b!whitelist @user
+        if member:
+            data = self.get_data(ctx.guild.id)
+            if member.id not in data["whitelist"]:
+                data["whitelist"].append(member.id)
+                self._save_db()
+                await ctx.send(f"✅ **{member.name}** is whitelisted.")
+        else:
+            await ctx.send("Use `b!whitelist @user`, `remove`, `show`, or `resetall`")
 
-    @commands.command(name="unpanic", aliases=["unlockdown"])
+    @whitelist.command(name="remove")
     @commands.has_permissions(administrator=True)
-    async def unpanic(self, ctx):
-        await ctx.send("🔓 **Lockdown Lifted.** Server operations normalized.")
+    async def wl_remove(self, ctx, member: discord.Member):
+        data = self.get_data(ctx.guild.id)
+        if member.id in data["whitelist"]:
+            data["whitelist"].remove(member.id)
+            self._save_db()
+            await ctx.send(f"❌ **{member.name}** removed from whitelist.")
 
-    # 💾 BACKUP SYSTEM
-    @commands.group(name="backup", invoke_without_command=True)
+    @whitelist.command(name="show")
     @commands.has_permissions(administrator=True)
-    async def backup(self, ctx):
-        await ctx.send("❓ Usage: `b!backup <create | restore | list | delete>`")
+    async def wl_show(self, ctx):
+        data = self.get_data(ctx.guild.id)
+        if not data["whitelist"]: return await ctx.send("📋 Whitelist is empty.")
+        users = [f"<@{uid}>" for uid in data["whitelist"]]
+        await ctx.send(embed=discord.Embed(title="🛡️ Whitelist", description="\n".join(users), color=0x2b2d31))
 
-    @backup.command(name="create")
-    async def backup_create(self, ctx):
-        await ctx.send("🔄 Capturing cryptographic snapshot of server layout and roles... (ID: `BKUP-001`)")
-
-    @backup.command(name="restore")
-    async def backup_restore(self, ctx, backup_id: str):
-        await ctx.send(f"⚠️ Rebuilding server using layout **{backup_id}**...")
-
-    # 👑 EXTRA OWNER / TRUSTED / WHITELIST
-    @commands.group(name="trusted", invoke_without_command=True)
+    @whitelist.command(name="resetall")
     @commands.has_permissions(administrator=True)
-    async def trusted(self, ctx):
-        await ctx.send("❓ Usage: `b!trusted <add | remove | list>`")
+    async def wl_resetall(self, ctx):
+        data = self.get_data(ctx.guild.id)
+        data["whitelist"] = []
+        self._save_db()
+        await ctx.send("✅ Whitelist completely cleared.")
 
-    @trusted.command(name="add")
-    async def trusted_add(self, ctx, user: discord.Member):
-        await ctx.send(f"🛡️ **{user.mention}** added to anti-nuke whitelist.")
-
-    @commands.group(name="extraowner", invoke_without_command=True)
-    @commands.has_permissions(administrator=True)
+    # --- EXTRA OWNER ---
+    @commands.group(invoke_without_command=True)
     async def extraowner(self, ctx):
         pass
 
     @extraowner.command(name="set")
-    async def eo_set(self, ctx, user: discord.Member):
-        await ctx.send(f"👑 **{user.mention}** granted Extra-Owner privileges.")
+    async def eo_set(self, ctx, member: discord.Member):
+        if ctx.author.id != ctx.guild.owner_id: return await ctx.send("❌ Only the actual Server Owner can use this.")
+        data = self.get_data(ctx.guild.id)
+        if member.id not in data["extra_owners"]:
+            data["extra_owners"].append(member.id)
+            self._save_db()
+            await ctx.send(f"👑 **{member.name}** is now an Extra Owner.")
 
-    # 🧹 DEEP SANITIZATION (WICK STYLE)
-    @commands.group(name="sanitize", invoke_without_command=True)
-    @commands.has_permissions(administrator=True)
-    async def sanitize(self, ctx):
-        await ctx.send("❓ Usage: `b!sanitize <bots | links | nsfw>`")
+    @extraowner.command(name="remove")
+    async def eo_remove(self, ctx, member: discord.Member):
+        if ctx.author.id != ctx.guild.owner_id: return await ctx.send("❌ Only the Server Owner can use this.")
+        data = self.get_data(ctx.guild.id)
+        if member.id in data["extra_owners"]:
+            data["extra_owners"].remove(member.id)
+            self._save_db()
+            await ctx.send(f"❌ **{member.name}** removed from Extra Owners.")
 
-    @sanitize.command(name="bots")
-    async def san_bots(self, ctx):
-        await ctx.send("🤖 Scanning for unauthorized bots... Kicking immediately.")
+    @extraowner.command(name="list")
+    async def eo_list(self, ctx):
+        data = self.get_data(ctx.guild.id)
+        if not data["extra_owners"]: return await ctx.send("📋 No extra owners set.")
+        users = [f"<@{uid}>" for uid in data["extra_owners"]]
+        await ctx.send(embed=discord.Embed(title="👑 Extra Owners", description="\n".join(users), color=0x2b2d31))
 
-    @sanitize.command(name="links")
-    async def san_links(self, ctx):
-        await ctx.send("🔗 Scanning member statuses for malicious links...")
+    @extraowner.command(name="reset")
+    async def eo_reset(self, ctx):
+        if ctx.author.id != ctx.guild.owner_id: return await ctx.send("❌ Only the Server Owner can use this.")
+        data = self.get_data(ctx.guild.id)
+        data["extra_owners"] = []
+        self._save_db()
+        await ctx.send("✅ Extra Owners completely reset.")
 
 async def setup(bot):
     await bot.add_cog(AntiNuke(bot))
