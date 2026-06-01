@@ -32,7 +32,22 @@ class AntiNuke(commands.Cog):
             }
         return self.db[gid]
 
-    # --- ANTINUKE TOGGLE ---
+    async def log_action(self, guild, message):
+        data = self.get_data(guild.id)
+        if data["log_channel"]:
+            log_chan = guild.get_channel(data["log_channel"])
+            if log_chan:
+                await log_chan.send(f"{data['log_msg']}\n{message}")
+
+    def is_authorized(self, user, guild):
+        data = self.get_data(guild.id)
+        if user.id == self.bot.user.id or user.id == guild.owner_id: return True
+        if user.id in data["whitelist"] or user.id in data["extra_owners"]: return True
+        return False
+
+    # ==========================================
+    # PART 1: SETTINGS & COMMANDS
+    # ==========================================
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
     async def antinuke(self, ctx):
@@ -54,7 +69,6 @@ class AntiNuke(commands.Cog):
         self._save_db()
         await ctx.send("❌ **Anti-Nuke is now DISABLED.**")
 
-    # --- LOGS ---
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
     async def antinukelog(self, ctx):
@@ -80,10 +94,8 @@ class AntiNuke(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def log_show(self, ctx):
         data = self.get_data(ctx.guild.id)
-        if data["log_channel"]:
-            await ctx.send(f"📡 Current log channel: <#{data['log_channel']}>")
-        else:
-            await ctx.send("❌ No log channel set.")
+        if data["log_channel"]: await ctx.send(f"📡 Current log channel: <#{data['log_channel']}>")
+        else: await ctx.send("❌ No log channel set.")
 
     @antinukelog.command(name="msg")
     @commands.has_permissions(administrator=True)
@@ -93,19 +105,16 @@ class AntiNuke(commands.Cog):
         self._save_db()
         await ctx.send(f"✅ Log message updated to: `{message}`")
 
-    # --- WHITELIST ---
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(administrator=True)
     async def whitelist(self, ctx, member: discord.Member = None):
-        # Adding support to just type b!whitelist @user
         if member:
             data = self.get_data(ctx.guild.id)
             if member.id not in data["whitelist"]:
                 data["whitelist"].append(member.id)
                 self._save_db()
                 await ctx.send(f"✅ **{member.name}** is whitelisted.")
-        else:
-            await ctx.send("Use `b!whitelist @user`, `remove`, `show`, or `resetall`")
+        else: await ctx.send("Use `b!whitelist @user`, `remove`, `show`, or `resetall`")
 
     @whitelist.command(name="remove")
     @commands.has_permissions(administrator=True)
@@ -132,14 +141,13 @@ class AntiNuke(commands.Cog):
         self._save_db()
         await ctx.send("✅ Whitelist completely cleared.")
 
-    # --- EXTRA OWNER ---
     @commands.group(invoke_without_command=True)
     async def extraowner(self, ctx):
         pass
 
     @extraowner.command(name="set")
     async def eo_set(self, ctx, member: discord.Member):
-        if ctx.author.id != ctx.guild.owner_id: return await ctx.send("❌ Only the actual Server Owner can use this.")
+        if ctx.author.id != ctx.guild.owner_id: return await ctx.send("❌ Only the Server Owner can use this.")
         data = self.get_data(ctx.guild.id)
         if member.id not in data["extra_owners"]:
             data["extra_owners"].append(member.id)
@@ -168,7 +176,56 @@ class AntiNuke(commands.Cog):
         data = self.get_data(ctx.guild.id)
         data["extra_owners"] = []
         self._save_db()
-        await ctx.send("✅ Extra Owners completely reset.")
+        await ctx.send("✅ Extra Owners reset.")
+
+    # ==========================================
+    # PART 2: THE TRIGGERS (Auto-Bans)
+    # ==========================================
+    
+    # 🛑 Anti-Channel Delete
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel):
+        data = self.get_data(channel.guild.id)
+        if not data["enabled"]: return
+
+        async for entry in channel.guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_delete):
+            if self.is_authorized(entry.user, channel.guild): return
+            
+            try:
+                await channel.guild.ban(entry.user, reason="Anti-Nuke: Unauthorized Channel Deletion")
+                await channel.clone(reason="Anti-Nuke: Channel Restored")
+                await self.log_action(channel.guild, f"🔨 Banned **{entry.user.name}** for deleting a channel.\n♻️ The channel was restored.")
+            except: pass
+
+    # 🛑 Anti-Mass Ban
+    @commands.Cog.listener()
+    async def on_member_ban(self, guild, user):
+        data = self.get_data(guild.id)
+        if not data["enabled"]: return
+
+        async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.ban):
+            if self.is_authorized(entry.user, guild): return
+            
+            try:
+                await guild.ban(entry.user, reason="Anti-Nuke: Unauthorized Ban")
+                await guild.unban(user, reason="Anti-Nuke: Reverting rogue ban")
+                await self.log_action(guild, f"🔨 Banned **{entry.user.name}** for rogue banning.\n♻️ Unbanned their victim.")
+            except: pass
+
+    # 🛑 Anti-Role Delete
+    @commands.Cog.listener()
+    async def on_guild_role_delete(self, role):
+        data = self.get_data(role.guild.id)
+        if not data["enabled"]: return
+
+        async for entry in role.guild.audit_logs(limit=1, action=discord.AuditLogAction.role_delete):
+            if self.is_authorized(entry.user, role.guild): return
+            
+            try:
+                await role.guild.ban(entry.user, reason="Anti-Nuke: Unauthorized Role Deletion")
+                await role.guild.create_role(name=role.name, permissions=role.permissions, color=role.color, reason="Anti-Nuke: Role Restored")
+                await self.log_action(role.guild, f"🔨 Banned **{entry.user.name}** for deleting a role.\n♻️ The role was restored.")
+            except: pass
 
 async def setup(bot):
     await bot.add_cog(AntiNuke(bot))
