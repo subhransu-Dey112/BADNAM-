@@ -11,13 +11,13 @@ COMMANDS_DB = {
                 "> 🛡️ `b!antinuke enable` • Turns on 24/7 protection\n"
                 "> 🛑 `b!antinuke disable` • Shuts down protection"
             ),
-            "Logging": (
+            "Anti-Nuke Logs": (
                 "> 📡 `b!antinukelog set` • Sets the alert channel\n"
                 "> 🗑️ `b!antinukelog reset` • Removes alert channel\n"
                 "> 🔭 `b!antinukelog show` • Shows log channel\n"
                 "> 💬 `b!antinukelog msg` • Sets custom alert message"
             ),
-            "Whitelist": (
+            "Anti-Nuke Whitelist": (
                 "> ✅ `b!whitelist [@user]` • Adds a bypass user\n"
                 "> ❌ `b!whitelist remove` • Removes a user\n"
                 "> 📋 `b!whitelist show` • Lists all whitelisted\n"
@@ -28,6 +28,35 @@ COMMANDS_DB = {
                 "> ⛔ `b!extraowner remove` • Removes bypass\n"
                 "> 📜 `b!extraowner list` • Lists all extra owners\n"
                 "> 🔄 `b!extraowner reset` • Wipes the list"
+            ),
+            "AutoMod Core": (
+                "> ⚙️ `b!automod enable` • Turns on AutoMod\n"
+                "> 🛑 `b!automod disable` • Shuts down AutoMod\n"
+                "> 🎛️ `b!automod config` • Shows settings & toggles\n"
+                "> 🔄 `b!automod reset` • Wipes settings to default\n"
+                "> 🛠️ `b!automod manage` • Toggles specific filters"
+            ),
+            "AutoMod Punish & Log": (
+                "> ⚖️ `b!automod punishment set` • Sets timeout/kick/ban\n"
+                "> 👁️ `b!automod punishment show` • Checks punishment\n"
+                "> 🔄 `b!automod punishment reset` • Resets to timeout\n"
+                "> 📡 `b!automod log set` • Sets action report channel\n"
+                "> 🗑️ `b!automod log reset` • Disables logging\n"
+                "> 🔭 `b!automod log show` • Shows log channel"
+            ),
+            "AutoMod Ignore": (
+                "> ✅ `b!automod ignore add` • Ignores role/channel\n"
+                "> ❌ `b!automod ignore remove` • Removes bypass\n"
+                "> 🔓 `b!automod unignore` • Specific unignore\n"
+                "> 📋 `b!automod ignore show` • Lists all bypasses\n"
+                "> 🧹 `b!automod ignore reset` • Clears ignore list"
+            ),
+            "AntiBot": (
+                "> 🤖 `b!antibot add` • Turns on AntiBot\n"
+                "> 🛑 `b!antibot remove` • Turns off AntiBot\n"
+                "> ✅ `b!antibot wl` • Whitelists a Bot ID\n"
+                "> 🎛️ `b!antibot config` • Shows AntiBot status\n"
+                "> 🔄 `b!antibot reset` • Turns off & wipes list"
             )
         }
     },
