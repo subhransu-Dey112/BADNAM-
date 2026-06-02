@@ -1,18 +1,17 @@
 from flask import Flask
 from threading import Thread
-import os
 
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is alive and running!"
+    return "Bot is online!"
 
 def run():
-    # Render assigns a specific port, this grabs it dynamically
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    # Runs the web server
+    app.run(host='0.0.0.0', port=8080)
 
 def keep_alive():
+    # Puts the web server in a background thread so the bot can boot!
     t = Thread(target=run)
     t.start()
