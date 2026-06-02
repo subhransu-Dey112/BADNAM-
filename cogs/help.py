@@ -1,17 +1,34 @@
 import discord
 from discord.ext import commands
 
-# The 2-Tier Command Database - Now with Premium Styling
+# The 2-Tier Command Database - Fully Assembled
 COMMANDS_DB = {
     "sec": {
         "title": "🛡️ SECURITY",
         "emoji": "🛡️",
         "modules": {
-            "Anti-Nuke": "`b!setup`, `b!antinuke`, `b!setlimit`, `b!quarantine`, `b!panic`, `b!backup`, `b!trusted`",
-            "AutoMod": "`b!automod`, `b!blackwords`, `b!antispam`, `b!antilink`, `b!antiinvite`",
-            "Advanced": "`b!whois`, `b!systempanic`, `b!anpanic`, `b!antinukelog`, `b!quarantinerole`",
-            "Protections": "`b!antidelete`, `b!antibot`, `b!antiwebhook`, `b!trustscore`, `b!webhook-intercept`",
-            "AI AutoMod": "`b!ai-mod`, `b!automodlog`, `b!automodwhitelist`"
+            "Anti-Nuke": (
+                "> 🛡️ `b!antinuke enable` • Turns on 24/7 protection\n"
+                "> 🛑 `b!antinuke disable` • Shuts down protection"
+            ),
+            "Logging": (
+                "> 📡 `b!antinukelog set` • Sets the alert channel\n"
+                "> 🗑️ `b!antinukelog reset` • Removes alert channel\n"
+                "> 🔭 `b!antinukelog show` • Shows log channel\n"
+                "> 💬 `b!antinukelog msg` • Sets custom alert message"
+            ),
+            "Whitelist": (
+                "> ✅ `b!whitelist [@user]` • Adds a bypass user\n"
+                "> ❌ `b!whitelist remove` • Removes a user\n"
+                "> 📋 `b!whitelist show` • Lists all whitelisted\n"
+                "> 🧹 `b!whitelist resetall` • Clears the list"
+            ),
+            "Extra Owner": (
+                "> 👑 `b!extraowner set` • Grants owner bypass\n"
+                "> ⛔ `b!extraowner remove` • Removes bypass\n"
+                "> 📜 `b!extraowner list` • Lists all extra owners\n"
+                "> 🔄 `b!extraowner reset` • Wipes the list"
+            )
         }
     },
     "man": {
@@ -98,7 +115,6 @@ class ModuleDropdown(discord.ui.Select):
         mod_name = self.values[0]
         commands_str = self.data["modules"][mod_name]
         
-        # REMOVED THE UGLY CODE BLOCK ``` AND ADDED CLEAN SPACING
         embed = discord.Embed(
             title=f"{self.data['emoji']} {mod_name.upper()}",
             description=f"Here are the commands for **{mod_name}**:\n\n{commands_str}",
