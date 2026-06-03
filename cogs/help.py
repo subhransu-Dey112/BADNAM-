@@ -3,6 +3,28 @@ from discord.ext import commands
 
 # The 2-Tier Command Database - Fully Assembled
 COMMANDS_DB = {
+    "aut": {
+        "title": "🤖 AUTOMATION",
+        "emoji": "🤖",
+        "modules": {
+            "AutoRole Humans": (
+                "> 🧑 `b!autorole humans` • Shows current human roles\n"
+                "> ➕ `b!autorole humans add` • Adds an auto-role for humans\n"
+                "> ➖ `b!autorole humans remove` • Removes a human auto-role"
+            ),
+            "AutoRole Bots": (
+                "> 🤖 `b!autorole bots` • Shows current bot roles\n"
+                "> ➕ `b!autorole bots add` • Adds an auto-role for bots\n"
+                "> ➖ `b!autorole bots remove` • Removes a bot auto-role"
+            ),
+            "AutoRole Admin": (
+                "> ⚙️ `b!autorole config` • Lists all configurations\n"
+                "> 🧑‍ `b!autorole reset humans` • Clears human lists\n"
+                "> 🤖‍ `b!autorole reset bots` • Clears bot lists\n"
+                "> 🧹 `b!autorole reset all` • Fully wipes the system"
+            )
+        }
+    },
     "sec": {
         "title": "🛡️ SECURITY",
         "emoji": "🛡️",
@@ -169,6 +191,7 @@ class MainDropdown(discord.ui.Select):
     def __init__(self, main_embed):
         self.main_embed = main_embed
         options = [
+            discord.SelectOption(label="Automation", value="aut", emoji="🤖"),
             discord.SelectOption(label="Security", value="sec", emoji="🛡️"),
             discord.SelectOption(label="Management", value="man", emoji="⚙️"),
             discord.SelectOption(label="Messaging", value="msg", emoji="💬"),
@@ -219,8 +242,9 @@ class Help(commands.Cog):
             description=(
                 f"A powerful multipurpose bot with the fastest Antinuke.\n"
                 f"**My Prefix is:** `{prefix}`\n"
-                f"**Total Commands:** `221+`\n\n"
+                f"**Total Commands:** `230+`\n\n"
                 f"**Choose a Specific Module of your Desire:**\n"
+                f"🤖 Automation\n"
                 f"🛡️ Security\n"
                 f"⚙️ Management\n"
                 f"💬 Messaging\n"
