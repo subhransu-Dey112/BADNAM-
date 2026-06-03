@@ -122,8 +122,21 @@ COMMANDS_DB = {
         "title": "💬 MESSAGING",
         "emoji": "💬",
         "modules": {
-            "Essentials": "`b!sticky`, `b!welcome`, `b!leave`, `b!boostmessage`",
-            "Interaction": "`b!autorespond`, `b!autoreact`, `b!suggest`, `b!starboard`"
+            "Auto Responder": (
+                "> 💬 `b!att add [trig] | [rep]` • Adds auto-reply\n"
+                "> ✏️ `b!att edit [trig] | [rep]` • Edits a reply\n"
+                "> 🗑️ `b!att remove [trig]` • Deletes a trigger\n"
+                "> ⏱️ `b!att autodel [trig] [s]` • Auto-deletes bot reply\n"
+                "> 📋 `b!att list` • Lists all auto-replies\n"
+                "> 🧹 `b!att reset` • Clears all auto-replies"
+            ),
+            "Auto React": (
+                "> ✨ `b!react add [trig] | [emj]` • Adds an auto-react\n"
+                "> 🗑️ `b!react remove [trig]` • Removes an auto-react\n"
+                "> 📋 `b!react list` • Lists all auto-reacts\n"
+                "> 🧹 `b!react reset` • Clears all auto-reacts"
+            ),
+            "Essentials": "`b!sticky`, `b!welcome`, `b!leave`, `b!boostmessage`"
         }
     },
     "gam": {
