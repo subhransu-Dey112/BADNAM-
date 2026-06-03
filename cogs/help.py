@@ -86,6 +86,16 @@ COMMANDS_DB = {
         "title": "⚙️ MANAGEMENT",
         "emoji": "⚙️",
         "modules": {
+            "Custom Roles": (
+                "> 🎨 `b!setup create [@user] [#hex] [name]` • Creates a role\n"
+                "> 🗑️ `b!setup delete [@role]` • Deletes a custom role\n"
+                "> ➕ `b!setup add [@user] [@role]` • Gives user the role\n"
+                "> ➖ `b!setup remove [@user] [@role]` • Removes the role\n"
+                "> 👑 `b!setup set manager [@role/user]` • Authorizes manager\n"
+                "> 📋 `b!setup list` • Lists all custom roles\n"
+                "> ⚙️ `b!setup config` • Views managers and stats\n"
+                "> 🔄 `b!setup reset` • Wipes the custom role system"
+            ),
             "Moderation": (
                 "> 👢 `b!kick [@user]` • Kicks a member\n"
                 "> 🔨 `b!ban [@user]` • Permanently bans a member\n"
@@ -255,7 +265,7 @@ class Help(commands.Cog):
             description=(
                 f"A powerful multipurpose bot with the fastest Antinuke.\n"
                 f"**My Prefix is:** `{prefix}`\n"
-                f"**Total Commands:** `230+`\n\n"
+                f"**Total Commands:** `240+`\n\n"
                 f"**Choose a Specific Module of your Desire:**\n"
                 f"🤖 Automation\n"
                 f"🛡️ Security\n"
