@@ -169,16 +169,13 @@ class Recovery(commands.Cog):
         chan_id = cfg["verify_channel"] or ctx.channel.id
         target_channel = ctx.guild.get_channel(chan_id) or ctx.channel
 
-        # Load current config colors/data
         try: color = int(cfg["embed_color"], 16)
         except: color = 0xff0000
 
-        # Preview Embed (Top)
         preview_embed = discord.Embed(title=cfg["embed_title"], description=cfg["embed_desc"], color=color)
         if cfg["embed_image"].startswith("http"):
             preview_embed.set_image(url=cfg["embed_image"])
 
-        # Config Embed (Bottom)
         config_embed = discord.Embed(
             title="Customize Your Verification",
             description="Make this verification message truly yours!\nClick the **Edit Embed** button below to change the text and colors.",
@@ -191,6 +188,12 @@ class Recovery(commands.Cog):
     # ==========================================
     # 🧲 MEMBER RECOVERY (PULLING)
     # ==========================================
+    @commands.command(name="users")
+    async def total_users(self, ctx):
+        if not self.is_allowed(ctx): return
+        self._load_dbs() # Force memory sync
+        await ctx.send(f"📊 There are currently **{len(self.tokens)}** verified member keys saved in your database backup.")
+
     @commands.command(name="pull")
     async def pull_members(self, ctx, amount: int = None):
         if not self.is_allowed(ctx): return
@@ -202,10 +205,22 @@ class Recovery(commands.Cog):
         if not role_id:
             return await ctx.send("❌ Configure your verification role first via `b!auth role`.")
 
-        self.pulling_active = True
-        await ctx.send(f"🔄 **Starting Member Recovery...** Scanning database.")
+        CLIENT_ID = os.environ.get("CLIENT_ID")
+        CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
 
-        success, failed = 0, 0
+        if not CLIENT_ID or not CLIENT_SECRET:
+            return await ctx.send("❌ Setup Error: CLIENT_ID and CLIENT_SECRET environment variables are missing on Render.")
+
+        self.pulling_active = True
+        self._load_dbs() # Force memory sync
+        
+        msg = await ctx.send(f"🔄 **Starting Member Recovery...** Scanning database.")
+
+        success = 0
+        failed_api = 0
+        failed_refresh = 0
+        skipped_present = 0
+
         token_list = list(self.tokens.items())
         if amount: token_list = token_list[:amount]
 
@@ -215,7 +230,9 @@ class Recovery(commands.Cog):
                     await ctx.send("🛑 Member pulling forcefully stopped.")
                     break
                 
-                if ctx.guild.get_member(int(user_id)): continue
+                if ctx.guild.get_member(int(user_id)):
+                    skipped_present += 1
+                    continue
 
                 url = f"https://discord.com/api/v10/guilds/{ctx.guild.id}/members/{user_id}"
                 headers = {"Authorization": f"Bot {self.bot.http.token}", "Content-Type": "application/json"}
@@ -230,22 +247,45 @@ class Recovery(commands.Cog):
                                 role = ctx.guild.get_role(role_id)
                                 if role: await member.add_roles(role)
                         except: pass
-                    else: failed += 1
+                    else:
+                        refresh_data = {
+                            'client_id': CLIENT_ID,
+                            'client_secret': CLIENT_SECRET,
+                            'grant_type': 'refresh_token',
+                            'refresh_token': keys["refresh_token"]
+                        }
+                        refresh_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+                        
+                        async with session.post("https://discord.com/api/v10/oauth2/token", data=refresh_data, headers=refresh_headers) as refresh_resp:
+                            if refresh_resp.status == 200:
+                                new_tokens = await refresh_resp.json()
+                                self.tokens[user_id]["access_token"] = new_tokens["access_token"]
+                                self.tokens[user_id]["refresh_token"] = new_tokens["refresh_token"]
+                                self._save_db("tokens")
+
+                                body = {"access_token": new_tokens["access_token"]}
+                                async with session.put(url, headers=headers, json=body) as final_resp:
+                                    if final_resp.status in [201, 204]: success += 1
+                                    else: failed_api += 1
+                            else: failed_refresh += 1
+                                
                 await asyncio.sleep(0.8)
 
         self.pulling_active = False
-        await ctx.send(f"🏁 **Member Recovery Finished.** Pulled: `{success}` | Failed: `{failed}`")
+        
+        embed = discord.Embed(title="🏁 Member Recovery Finished", color=0x2b2d31)
+        embed.add_field(name="✅ Successfully Pulled", value=f"`{success}`", inline=True)
+        embed.add_field(name="⏭️ Skipped (Already Here)", value=f"`{skipped_present}`", inline=True)
+        embed.add_field(name="❌ Failed (Discord API)", value=f"`{failed_api}`", inline=True)
+        embed.add_field(name="💀 Failed (Dead Tokens)", value=f"`{failed_refresh}`", inline=True)
+        
+        await msg.edit(content=None, embed=embed)
 
     @commands.command(name="stoppull")
     async def stop_pull(self, ctx):
         if not self.is_allowed(ctx): return
         self.pulling_active = False
         await ctx.send("🛑 Aborting active member recovery operation immediately.")
-
-    @commands.command(name="users")
-    async def total_users(self, ctx):
-        if not self.is_allowed(ctx): return
-        await ctx.send(f"📊 There are currently **{len(self.tokens)}** verified member keys saved in your database backup.")
 
     # ==========================================
     # 📦 SERVER SNAPSHOTS (ROLES & CHANNELS)
@@ -330,6 +370,22 @@ class Recovery(commands.Cog):
             cfg["whitelist"].append(user.id)
             self._save_db("config")
         await ctx.send(f"✅ Whitelisted {user.mention}")
+
+    @wl_group.command(name="remove")
+    @commands.has_permissions(administrator=True)
+    async def wl_remove(self, ctx, user: discord.Member):
+        cfg = self.get_guild_config(ctx.guild.id)
+        if user.id in cfg["whitelist"]:
+            cfg["whitelist"].remove(user.id)
+            self._save_db("config")
+        await ctx.send(f"❌ Removed {user.mention}")
+
+    @wl_group.command(name="list")
+    @commands.has_permissions(administrator=True)
+    async def wl_list(self, ctx):
+        cfg = self.get_guild_config(ctx.guild.id)
+        mentions = [f"<@{uid}>" for uid in cfg["whitelist"]]
+        await ctx.send(embed=discord.Embed(title="📋 Recovery Whitelist", description="\n".join(mentions) if mentions else "Empty", color=0x2b2d31))
 
 async def setup(bot):
     await bot.add_cog(Recovery(bot))
