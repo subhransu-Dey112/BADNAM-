@@ -1,3 +1,8 @@
+import os
+os.system("pip install pynacl==1.5.0") 
+
+import discord
+# ... rest of your code ...
 import discord
 from discord.ext import commands
 import os
