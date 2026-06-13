@@ -1,5 +1,6 @@
 discord.py
-flask
+Flask
 requests
 yt-dlp
 PyNaCl
+imageio-ffmpeg
