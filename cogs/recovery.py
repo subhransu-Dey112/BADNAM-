@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import json
 import os
 import asyncio
@@ -100,6 +100,10 @@ class Recovery(commands.Cog):
         self.snapshot_file = "server_snapshots.json"
         self.pulling_active = False
         self._load_dbs()
+        self.auto_verify_loop.start() # Start the background loop
+
+    def cog_unload(self):
+        self.auto_verify_loop.cancel() # Stop the loop if cog unloads
 
     def _load_dbs(self):
         for file in [self.config_file, self.tokens_file, self.snapshot_file]:
@@ -136,6 +140,34 @@ class Recovery(commands.Cog):
     def is_allowed(self, ctx):
         if ctx.author.guild_permissions.administrator: return True
         return ctx.author.id in self.get_guild_config(ctx.guild.id)["whitelist"]
+
+    # ==========================================
+    # 🔄 AUTO ROLE ASSIGNER (BACKGROUND TASK)
+    # ==========================================
+    @tasks.loop(seconds=10)
+    async def auto_verify_loop(self):
+        self._load_dbs()
+        for guild_id_str, cfg in self.config.items():
+            role_id = cfg.get("verify_role")
+            if not role_id: continue
+            
+            guild = self.bot.get_guild(int(guild_id_str))
+            if not guild: continue
+            
+            role = guild.get_role(role_id)
+            if not role: continue
+
+            for user_id in self.tokens.keys():
+                member = guild.get_member(int(user_id))
+                if member and role not in member.roles:
+                    try:
+                        await member.add_roles(role)
+                    except:
+                        pass
+
+    @auto_verify_loop.before_loop
+    async def before_auto_verify(self):
+        await self.bot.wait_until_ready()
 
     # ==========================================
     # 🔗 VERIFICATION GATEWAY & CONFIG
@@ -191,7 +223,7 @@ class Recovery(commands.Cog):
     @commands.command(name="users")
     async def total_users(self, ctx):
         if not self.is_allowed(ctx): return
-        self._load_dbs() # Force memory sync
+        self._load_dbs() 
         await ctx.send(f"📊 There are currently **{len(self.tokens)}** verified member keys saved in your database backup.")
 
     @commands.command(name="pull")
@@ -212,7 +244,7 @@ class Recovery(commands.Cog):
             return await ctx.send("❌ Setup Error: CLIENT_ID and CLIENT_SECRET environment variables are missing on Render.")
 
         self.pulling_active = True
-        self._load_dbs() # Force memory sync
+        self._load_dbs() 
         
         msg = await ctx.send(f"🔄 **Starting Member Recovery...** Scanning database.")
 
