@@ -2,6 +2,3 @@ discord.py
 Flask
 requests
 yt-dlp
-imageio-ffmpeg
---find-links https://wheels.specsavers.com/
-pynacl
