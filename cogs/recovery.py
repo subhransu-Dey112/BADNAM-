@@ -5,6 +5,93 @@ import os
 import asyncio
 import aiohttp
 
+# ==========================================
+# 🎨 INTERACTIVE VERIFICATION UI SYSTEM
+# ==========================================
+class SetupModal(discord.ui.Modal, title='Customize Embed'):
+    emb_title = discord.ui.TextInput(label='Title', default='BADNAM SECURITY', max_length=200)
+    emb_desc = discord.ui.TextInput(label='Description', style=discord.TextStyle.paragraph, max_length=1000)
+    emb_color = discord.ui.TextInput(label='Hex Color (Without #)', default='ff0000', max_length=6)
+    emb_image = discord.ui.TextInput(label='Image URL (Optional)', required=False)
+
+    def __init__(self, view, cog, guild_id):
+        super().__init__()
+        self.view_obj = view
+        self.cog = cog
+        self.guild_id = guild_id
+        
+        cfg = self.cog.get_guild_config(self.guild_id)
+        self.emb_title.default = cfg.get("embed_title", "BADNAM SECURITY")
+        self.emb_desc.default = cfg.get("embed_desc", "MUST VERIFY HERE TO ACCESS ALL CHANNELS\n(AFTER DONE NO NEED TO CLICK CONTINUE DIRECTLY COME TO THE SERVER YOU CAN ACCESS TO ALL THE CHANNELS)")
+        self.emb_color.default = cfg.get("embed_color", "ff0000")
+        self.emb_image.default = cfg.get("embed_image", "")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        cfg = self.cog.get_guild_config(self.guild_id)
+        cfg["embed_title"] = self.emb_title.value
+        cfg["embed_desc"] = self.emb_desc.value
+        cfg["embed_color"] = self.emb_color.value
+        cfg["embed_image"] = self.emb_image.value
+        self.cog._save_db("config")
+        
+        await self.view_obj.update_preview(interaction)
+
+class SetupConfigView(discord.ui.View):
+    def __init__(self, cog, ctx, target_channel):
+        super().__init__(timeout=300)
+        self.cog = cog
+        self.ctx = ctx
+        self.target_channel = target_channel
+
+    async def update_preview(self, interaction):
+        cfg = self.cog.get_guild_config(self.ctx.guild.id)
+        
+        try: color = int(cfg["embed_color"], 16)
+        except: color = 0xff0000
+
+        preview_embed = discord.Embed(title=cfg["embed_title"], description=cfg["embed_desc"], color=color)
+        if cfg["embed_image"].startswith("http"):
+            preview_embed.set_image(url=cfg["embed_image"])
+
+        verify_view = discord.ui.View()
+        url = f"https://badnam-1.onrender.com/login"
+        verify_view.add_item(discord.ui.Button(label="Verify", style=discord.ButtonStyle.link, url=url, emoji="✅"))
+
+        await interaction.response.edit_message(embeds=[preview_embed, interaction.message.embeds[1]], view=self)
+
+    @discord.ui.button(label="Edit Embed (Title, Desc, Color, Image)", style=discord.ButtonStyle.primary, emoji="✏️", row=0)
+    async def edit_embed(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(SetupModal(self, self.cog, self.ctx.guild.id))
+
+    @discord.ui.button(label="Button Settings", style=discord.ButtonStyle.secondary, emoji="🔘", row=1)
+    async def btn_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("🔘 Button settings locked to default OAuth link for security.", ephemeral=True)
+
+    @discord.ui.button(label="Continue to Channels", style=discord.ButtonStyle.success, emoji="✅", row=2)
+    async def confirm_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        cfg = self.cog.get_guild_config(self.ctx.guild.id)
+        try: color = int(cfg["embed_color"], 16)
+        except: color = 0xff0000
+
+        final_embed = discord.Embed(title=cfg["embed_title"], description=cfg["embed_desc"], color=color)
+        if cfg["embed_image"].startswith("http"):
+            final_embed.set_image(url=cfg["embed_image"])
+
+        final_view = discord.ui.View()
+        url = f"https://badnam-1.onrender.com/login"
+        final_view.add_item(discord.ui.Button(label="Verify", style=discord.ButtonStyle.link, url=url, emoji="✅"))
+
+        await self.target_channel.send(embed=final_embed, view=final_view)
+        await interaction.response.edit_message(content=f"✅ Setup Complete! Panel sent to {self.target_channel.mention}", embeds=[], view=None)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger, emoji="❌", row=2)
+    async def cancel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="❌ Setup cancelled.", embeds=[], view=None)
+
+
+# ==========================================
+# ⚙️ MAIN RECOVERY COG
+# ==========================================
 class Recovery(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -39,17 +126,19 @@ class Recovery(commands.Cog):
                 "verify_role": None,
                 "logs_channel": None,
                 "whitelist": [],
-                "blacklist": []
+                "embed_title": "BADNAM SECURITY",
+                "embed_desc": "MUST VERIFY HERE TO ACCESS ALL CHANNELS\n(AFTER DONE NO NEED TO CLICK CONTINUE DIRECTLY COME TO THE SERVER YOU CAN ACCESS TO ALL THE CHANNELS)",
+                "embed_color": "ff0000",
+                "embed_image": ""
             }
         return self.config[gid]
 
     def is_allowed(self, ctx):
         if ctx.author.guild_permissions.administrator: return True
-        cfg = self.get_guild_config(ctx.guild.id)
-        return ctx.author.id in cfg["whitelist"]
+        return ctx.author.id in self.get_guild_config(ctx.guild.id)["whitelist"]
 
     # ==========================================
-    # 🔗 CONFIGURATION & VERIFICATION SETUP
+    # 🔗 VERIFICATION GATEWAY & CONFIG
     # ==========================================
     @commands.group(name="auth", invoke_without_command=True)
     async def auth_group(self, ctx):
@@ -70,13 +159,6 @@ class Recovery(commands.Cog):
         self._save_db("config")
         await ctx.send(f"✅ Post-verification role set to **{role.name}**")
 
-    @auth_group.command(name="logs")
-    async def auth_logs(self, ctx, channel: discord.TextChannel):
-        if not self.is_allowed(ctx): return
-        self.get_guild_config(ctx.guild.id)["logs_channel"] = channel.id
-        self._save_db("config")
-        await ctx.send(f"✅ Security backup logs set to {channel.mention}")
-
     @auth_group.command(name="setup")
     async def auth_setup(self, ctx):
         if not self.is_allowed(ctx): return
@@ -85,23 +167,29 @@ class Recovery(commands.Cog):
             return await ctx.send("❌ Setup a verification role first using `b!auth role [@role]`")
         
         chan_id = cfg["verify_channel"] or ctx.channel.id
-        channel = ctx.guild.get_channel(chan_id) or ctx.channel
-        
-        embed = discord.Embed(
-            title="🛡️ Verification Required",
-            description="Click the button below to verify your account and access the server channels.",
+        target_channel = ctx.guild.get_channel(chan_id) or ctx.channel
+
+        # Load current config colors/data
+        try: color = int(cfg["embed_color"], 16)
+        except: color = 0xff0000
+
+        # Preview Embed (Top)
+        preview_embed = discord.Embed(title=cfg["embed_title"], description=cfg["embed_desc"], color=color)
+        if cfg["embed_image"].startswith("http"):
+            preview_embed.set_image(url=cfg["embed_image"])
+
+        # Config Embed (Bottom)
+        config_embed = discord.Embed(
+            title="Customize Your Verification",
+            description="Make this verification message truly yours!\nClick the **Edit Embed** button below to change the text and colors.",
             color=0x2b2d31
         )
-        view = discord.ui.View()
-        # Points directly to your Render app login route
-        url = f"https://badnam-1.onrender.com/login"
-        view.add_item(discord.ui.Button(label="Verify Here", style=discord.ButtonStyle.link, url=url))
-        
-        await channel.send(embed=embed, view=view)
-        await ctx.send(f"🚀 Verification gateway deployed in {channel.mention}")
+
+        view = SetupConfigView(self, ctx, target_channel)
+        await ctx.send(embeds=[preview_embed, config_embed], view=view)
 
     # ==========================================
-    # 🧲 FEATURE 1: DISTINCT MEMBER RECOVERY
+    # 🧲 MEMBER RECOVERY (PULLING)
     # ==========================================
     @commands.command(name="pull")
     async def pull_members(self, ctx, amount: int = None):
@@ -112,15 +200,14 @@ class Recovery(commands.Cog):
         cfg = self.get_guild_config(ctx.guild.id)
         role_id = cfg["verify_role"]
         if not role_id:
-            return await ctx.send("❌ Configure your verification role first via `b!auth role` so pulled members get access.")
+            return await ctx.send("❌ Configure your verification role first via `b!auth role`.")
 
         self.pulling_active = True
-        await ctx.send(f"🔄 **Starting Member Recovery...** Scanning database for valid access keys.")
+        await ctx.send(f"🔄 **Starting Member Recovery...** Scanning database.")
 
         success, failed = 0, 0
         token_list = list(self.tokens.items())
-        if amount:
-            token_list = token_list[:amount]
+        if amount: token_list = token_list[:amount]
 
         async with aiohttp.ClientSession() as session:
             for user_id, keys in token_list:
@@ -128,35 +215,26 @@ class Recovery(commands.Cog):
                     await ctx.send("🛑 Member pulling forcefully stopped.")
                     break
                 
-                # Check if user is already in server
-                if ctx.guild.get_member(int(user_id)):
-                    continue
+                if ctx.guild.get_member(int(user_id)): continue
 
                 url = f"https://discord.com/api/v10/guilds/{ctx.guild.id}/members/{user_id}"
-                headers = {
-                    "Authorization": f"Bot {self.bot.http.token}",
-                    "Content-Type": "application/json"
-                }
+                headers = {"Authorization": f"Bot {self.bot.http.token}", "Content-Type": "application/json"}
                 body = {"access_token": keys["access_token"]}
                 
                 async with session.put(url, headers=headers, json=body) as resp:
                     if resp.status in [201, 204]:
                         success += 1
-                        # Force assign verified role
                         try:
                             member = ctx.guild.get_member(int(user_id))
                             if member:
                                 role = ctx.guild.get_role(role_id)
                                 if role: await member.add_roles(role)
                         except: pass
-                    else:
-                        failed += 1
-                
-                # Sleep to strictly respect Discord API rate limits
+                    else: failed += 1
                 await asyncio.sleep(0.8)
 
         self.pulling_active = False
-        await ctx.send(f"🏁 **Member Recovery Finished.** Successfully pulled: `{success}` | Failed/Expired: `{failed}`")
+        await ctx.send(f"🏁 **Member Recovery Finished.** Pulled: `{success}` | Failed: `{failed}`")
 
     @commands.command(name="stoppull")
     async def stop_pull(self, ctx):
@@ -170,7 +248,7 @@ class Recovery(commands.Cog):
         await ctx.send(f"📊 There are currently **{len(self.tokens)}** verified member keys saved in your database backup.")
 
     # ==========================================
-    # 📦 FEATURE 2: DISTINCT SNAPSHOT RECOVERY (CHANNELS & ROLES)
+    # 📦 SERVER SNAPSHOTS (ROLES & CHANNELS)
     # ==========================================
     @commands.group(name="snapshot", invoke_without_command=True)
     async def snapshot_group(self, ctx):
@@ -182,30 +260,10 @@ class Recovery(commands.Cog):
         if not self.is_allowed(ctx): return
         await ctx.send("📸 Memorizing server channels, layouts, roles, and structural permissions...")
         
-        roles_data = []
-        for r in ctx.guild.roles:
-            if r.is_default() or r.managed: continue
-            roles_data.append({
-                "name": r.name,
-                "color": r.color.value,
-                "hoist": r.hoist,
-                "mentionable": r.mentionable,
-                "permissions": r.permissions.value
-            })
+        roles_data = [{"name": r.name, "color": r.color.value, "hoist": r.hoist, "mentionable": r.mentionable, "permissions": r.permissions.value} for r in ctx.guild.roles if not r.is_default() and not r.managed]
+        channels_data = [{"name": c.name, "type": str(c.type), "category": c.category.name if c.category else None, "position": c.position} for c in ctx.guild.channels]
 
-        channels_data = []
-        for c in ctx.guild.channels:
-            channels_data.append({
-                "name": c.name,
-                "type": str(c.type),
-                "category": c.category.name if c.category else None,
-                "position": c.position
-            })
-
-        self.snapshots[str(ctx.guild.id)] = {
-            "roles": roles_data,
-            "channels": channels_data
-        }
+        self.snapshots[str(ctx.guild.id)] = {"roles": roles_data, "channels": channels_data}
         self._save_db("snapshot")
         await ctx.send("✅ **Server Snapshot Saved!** Channels structural data and roles archived securely.")
 
@@ -214,80 +272,50 @@ class Recovery(commands.Cog):
         if not self.is_allowed(ctx): return
         gid = str(ctx.guild.id)
         if gid not in self.snapshots or "channels" not in self.snapshots[gid]:
-            return await ctx.send("❌ No structure snapshot found for this server. Use `b!snapshot create` first.")
+            return await ctx.send("❌ No structure snapshot found. Use `b!snapshot create` first.")
 
-        await ctx.send("🛠️ **Rebuilding Server Channels...** Please wait.")
+        await ctx.send("🛠️ **Rebuilding Server Channels...**")
         categories = {}
-        
-        # Re-create categories first
         for chan in sorted(self.snapshots[gid]["channels"], key=lambda x: x["position"]):
             if chan["type"] == "category":
-                cat = await ctx.guild.create_category(name=chan["name"])
-                categories[chan["name"]] = cat
+                categories[chan["name"]] = await ctx.guild.create_category(name=chan["name"])
 
-        # Re-create Text and Voice channels
         for chan in sorted(self.snapshots[gid]["channels"], key=lambda x: x["position"]):
-            cat_obj = categories.get(chan["category"]) if chan["category"] else None
-            if chan["type"] == "text":
-                await ctx.guild.create_text_channel(name=chan["name"], category=cat_obj)
-            elif chan["type"] == "voice":
-                await ctx.guild.create_voice_channel(name=chan["name"], category=cat_obj)
-                
+            cat_obj = categories.get(chan["category"])
+            if chan["type"] == "text": await ctx.guild.create_text_channel(name=chan["name"], category=cat_obj)
+            elif chan["type"] == "voice": await ctx.guild.create_voice_channel(name=chan["name"], category=cat_obj)
         await ctx.send("✅ All layout categories and channels fully cloned and restored.")
 
     @snapshot_group.command(name="roles")
     async def restore_roles(self, ctx):
         if not self.is_allowed(ctx): return
         gid = str(ctx.guild.id)
-        if gid not in self.snapshots or "roles" not in self.snapshots[gid]:
-            return await ctx.send("❌ No roles snapshot found for this server.")
+        if gid not in self.snapshots or "roles" not in self.snapshots[gid]: return await ctx.send("❌ No roles snapshot found.")
 
         await ctx.send("🛡️ **Restoring Server Roles...**")
         for r_data in self.snapshots[gid]["roles"]:
-            try:
-                await ctx.guild.create_role(
-                    name=r_data["name"],
-                    color=discord.Color(r_data["color"]),
-                    hoist=r_data["hoist"],
-                    mentionable=r_data["mentionable"],
-                    permissions=discord.Permissions(r_data["permissions"])
-                )
+            try: await ctx.guild.create_role(name=r_data["name"], color=discord.Color(r_data["color"]), hoist=r_data["hoist"], mentionable=r_data["mentionable"], permissions=discord.Permissions(r_data["permissions"]))
             except: pass
-        await ctx.send("✅ All server roles fully re-generated from the snapshot database.")
+        await ctx.send("✅ All server roles fully re-generated.")
 
     # ==========================================
-    # ⚡ FEATURE 3: DISTINGUISHED "RECOVER ALL"
+    # ⚡ RECOVER ALL
     # ==========================================
     @commands.command(name="recoverall")
     async def recover_all(self, ctx):
         if not self.is_allowed(ctx): return
-        
-        confirm_embed = discord.Embed(
-            title="⚠️ CRITICAL RUN: Full Server Recovery",
-            description="This will execute an automated sequence:\n1️⃣ Re-generate Roles\n2️⃣ Re-build Channel Layouts\n3️⃣ Mass-pull all backup Members.\n\nType `confirm` within 15 seconds to proceed.",
-            color=0xffcc00
-        )
-        await ctx.send(embed=confirm_embed)
+        await ctx.send(embed=discord.Embed(title="⚠️ CRITICAL RUN: Full Recovery", description="Type `confirm` within 15s to rebuild roles, channels, and pull members.", color=0xffcc00))
+        try: await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == 'confirm', timeout=15.0)
+        except asyncio.TimeoutError: return await ctx.send("❌ Timed out.")
 
-        def check(m): return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == 'confirm'
-        try:
-            await self.bot.wait_for('message', check=check, timeout=15.0)
-        except asyncio.TimeoutError:
-            return await ctx.send("❌ Operation timed out. Full recovery canceled.")
-
-        # Step 1: Restore Roles
         await ctx.invoke(self.bot.get_command('snapshot roles'))
         await asyncio.sleep(2)
-        
-        # Step 2: Restore Channels
         await ctx.invoke(self.bot.get_command('snapshot channels'))
         await asyncio.sleep(2)
-        
-        # Step 3: Pull Members
         await ctx.invoke(self.bot.get_command('pull'))
 
     # ==========================================
-    # WHITELIST ADMINISTRATIVE CONTROLS
+    # 👥 WHITELIST
     # ==========================================
     @commands.group(name="wl", invoke_without_command=True)
     @commands.has_permissions(administrator=True)
@@ -301,23 +329,7 @@ class Recovery(commands.Cog):
         if user.id not in cfg["whitelist"]:
             cfg["whitelist"].append(user.id)
             self._save_db("config")
-        await ctx.send(f"✅ Whitelisted {user.mention} to use backup recovery tools.")
-
-    @wl_group.command(name="remove")
-    @commands.has_permissions(administrator=True)
-    async def wl_remove(self, ctx, user: discord.Member):
-        cfg = self.get_guild_config(ctx.guild.id)
-        if user.id in cfg["whitelist"]:
-            cfg["whitelist"].remove(user.id)
-            self._save_db("config")
-        await ctx.send(f"❌ Removed {user.mention} from recovery tools whitelist.")
-
-    @wl_group.command(name="list")
-    @commands.has_permissions(administrator=True)
-    async def wl_list(self, ctx):
-        cfg = self.get_guild_config(ctx.guild.id)
-        mentions = [f"<@{uid}>" for uid in cfg["whitelist"]]
-        await ctx.send(embed=discord.Embed(title="📋 Recovery Whitelist", description="\n".join(mentions) if mentions else "Empty", color=0x2b2d31))
+        await ctx.send(f"✅ Whitelisted {user.mention}")
 
 async def setup(bot):
     await bot.add_cog(Recovery(bot))
