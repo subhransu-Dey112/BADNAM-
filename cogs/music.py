@@ -3,6 +3,7 @@ from discord.ext import commands
 import asyncio
 import yt_dlp
 import random
+import imageio_ffmpeg  # The magic fix for Render!
 
 # Suppress noisy error logs from yt-dlp
 yt_dlp.utils.bug_reports_message = lambda: ''
@@ -68,7 +69,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def create_source(cls, data, filter_key="clear", volume=0.5):
         ff_opts = ffmpeg_options.copy()
         ff_opts['options'] = FILTERS.get(filter_key, "-vn")
-        return cls(discord.FFmpegPCMAudio(data['url'], **ff_opts), data=data, volume=volume)
+        
+        # Grab the executable path dynamically so it works flawlessly on Render!
+        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        
+        return cls(discord.FFmpegPCMAudio(data['url'], executable=ffmpeg_path, **ff_opts), data=data, volume=volume)
 
 # ==========================================
 # 🎛️ THE INTERACTIVE DASHBOARD VIEW
