@@ -29,11 +29,44 @@ COMMANDS_DB = {
         "title": "🛡️ SECURITY",
         "emoji": "🛡️",
         "modules": {
-            "Anti-Nuke": (
-                "> 🛡️ `b!antinuke enable` • Turns on 24/7 protection\n"
-                "> 🛑 `b!antinuke disable` • Shuts down protection"
+            "Server Backup & Recovery": (
+                "> 🔗 `b!auth setup / channel / role / logs` • Sets up verification\n"
+                "> 🔍 `b!auth check [@user]` • Checks a user's backup status\n"
+                "> 🧲 `b!pull [amount]` • Pulls verified members\n"
+                "> 🧲 `b!pullall` • Mass-pulls all verified members\n"
+                "> 🛑 `b!stoppull` • Halts member pulling\n"
+                "> 📊 `b!users` • Shows total backed-up members\n"
+                "> 📸 `b!snapshot create / channels / roles` • Layout cloning\n"
+                "> ⚡ `b!recoverall` • Full server rebuild & member restore\n"
+                "> ⚙️ `b!wl add / remove / list` • Whitelist recovery staff"
             ),
-            "Anti-Nuke Logs": (
+            "Quarantine": (
+                "> 🦠 `b!quarantine [@user]` • Quarantines a user\n"
+                "> ➕ `b!quarantinerole create` • Makes a quarantine role\n"
+                "> ⚙️ `b!quarantinerole set [@role]` • Sets the role\n"
+                "> 🔭 `b!quarantinerole show` • Shows current role\n"
+                "> 🗑️ `b!quarantinerole reset` • Removes the role\n"
+                "> 📡 `b!quarantinelog set [#chan]` • Sets the log channel\n"
+                "> 🔭 `b!quarantinelog show` • Shows the log channel\n"
+                "> 🗑️ `b!quarantinelog reset` • Removes log channel"
+            ),
+            "Permissions (Permit)": (
+                "> 🛡️ `b!permission [@role]` • Checks role permissions\n"
+                "> 👑 `b!permission owner [@role]` • Adds owner permit\n"
+                "> 🔄 `b!permission reset [@role/all]` • Resets permits\n"
+                "> 👑 `b!extraowner set [@user]` • Sets extra owner\n"
+                "> 📋 `b!extraowner view` • Shows extra owners\n"
+                "> 🧹 `b!extraowner reset` • Wipes extra owners"
+            ),
+            "Ignore System": (
+                "> 🚫 `b!ignore command add/remove/show`\n"
+                "> 🚫 `b!ignore channel add/remove/show`\n"
+                "> 🚫 `b!ignore user add/remove/show`\n"
+                "> 🛡️ `b!ignore bypass add/remove/show`"
+            ),
+            "Anti-Nuke Core": (
+                "> 🛡️ `b!antinuke enable` • Turns on 24/7 protection\n"
+                "> 🛑 `b!antinuke disable` • Shuts down protection\n"
                 "> 📡 `b!antinukelog set` • Sets the alert channel\n"
                 "> 🗑️ `b!antinukelog reset` • Removes alert channel\n"
                 "> 🔭 `b!antinukelog show` • Shows log channel\n"
@@ -45,40 +78,13 @@ COMMANDS_DB = {
                 "> 📋 `b!whitelist show` • Lists all whitelisted\n"
                 "> 🧹 `b!whitelist resetall` • Clears the list"
             ),
-            "Extra Owner": (
-                "> 👑 `b!extraowner set` • Grants owner bypass\n"
-                "> ⛔ `b!extraowner remove` • Removes bypass\n"
-                "> 📜 `b!extraowner list` • Lists all extra owners\n"
-                "> 🔄 `b!extraowner reset` • Wipes the list"
-            ),
-            "AutoMod Core": (
-                "> ⚙️ `b!automod enable` • Turns on AutoMod\n"
-                "> 🛑 `b!automod disable` • Shuts down AutoMod\n"
-                "> 🎛️ `b!automod config` • Shows settings & toggles\n"
-                "> 🔄 `b!automod reset` • Wipes settings to default\n"
-                "> 🛠️ `b!automod manage` • Toggles specific filters"
-            ),
-            "AutoMod Punish & Log": (
-                "> ⚖️ `b!automod punishment set` • Sets timeout/kick/ban\n"
-                "> 👁️ `b!automod punishment show` • Checks punishment\n"
-                "> 🔄 `b!automod punishment reset` • Resets to timeout\n"
-                "> 📡 `b!automod log set` • Sets action report channel\n"
-                "> 🗑️ `b!automod log reset` • Disables logging\n"
-                "> 🔭 `b!automod log show` • Shows log channel"
-            ),
-            "AutoMod Ignore": (
-                "> ✅ `b!automod ignore add` • Ignores role/channel\n"
-                "> ❌ `b!automod ignore remove` • Removes bypass\n"
-                "> 🔓 `b!automod unignore` • Specific unignore\n"
-                "> 📋 `b!automod ignore show` • Lists all bypasses\n"
-                "> 🧹 `b!automod ignore reset` • Clears ignore list"
-            ),
-            "AntiBot": (
-                "> 🤖 `b!antibot add` • Turns on AntiBot\n"
-                "> 🛑 `b!antibot remove` • Turns off AntiBot\n"
-                "> ✅ `b!antibot wl` • Whitelists a Bot ID\n"
-                "> 🎛️ `b!antibot config` • Shows AntiBot status\n"
-                "> 🔄 `b!antibot reset` • Turns off & wipes list"
+            "AutoMod & AntiBot": (
+                "> ⚙️ `b!automod enable / disable / config / reset`\n"
+                "> 🛠️ `b!automod manage [filter]` • Toggles filters\n"
+                "> ⚖️ `b!automod punishment set / show / reset`\n"
+                "> 📡 `b!automod log set / show / reset`\n"
+                "> ✅ `b!automod ignore add / remove / show / reset`\n"
+                "> 🤖 `b!antibot add / remove / wl / config / reset`"
             )
         }
     },
@@ -265,7 +271,7 @@ class Help(commands.Cog):
             description=(
                 f"A powerful multipurpose bot with the fastest Antinuke.\n"
                 f"**My Prefix is:** `{prefix}`\n"
-                f"**Total Commands:** `240+`\n\n"
+                f"**Total Commands:** `260+`\n\n"
                 f"**Choose a Specific Module of your Desire:**\n"
                 f"🤖 Automation\n"
                 f"🛡️ Security\n"
