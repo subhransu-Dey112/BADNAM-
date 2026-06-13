@@ -2,5 +2,5 @@ discord.py
 Flask
 requests
 yt-dlp
-PyNaCl
 imageio-ffmpeg
+pynacl==1.5.0
