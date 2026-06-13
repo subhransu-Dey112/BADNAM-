@@ -55,8 +55,7 @@ class SetupConfigView(discord.ui.View):
 
         verify_view = discord.ui.View()
         url = f"https://badnam-1.onrender.com/login"
-        verify_view.add_item(discord.ui.Button(label="1. Verify Here", style=discord.ButtonStyle.link, url=url, emoji="🔗"))
-        verify_view.add_item(discord.ui.Button(label="2. Claim Role", style=discord.ButtonStyle.success, custom_id="claim_verify_role", emoji="✅"))
+        verify_view.add_item(discord.ui.Button(label="Verify Here", style=discord.ButtonStyle.link, url=url, emoji="✅"))
 
         await interaction.response.edit_message(embeds=[preview_embed, interaction.message.embeds[1]], view=self)
 
@@ -78,11 +77,9 @@ class SetupConfigView(discord.ui.View):
         if cfg["embed_image"].startswith("http"):
             final_embed.set_image(url=cfg["embed_image"])
 
-        # Create persistent view for final dispatch
         final_view = discord.ui.View(timeout=None)
         url = f"https://badnam-1.onrender.com/login"
-        final_view.add_item(discord.ui.Button(label="1. Verify Here", style=discord.ButtonStyle.link, url=url, emoji="🔗"))
-        final_view.add_item(discord.ui.Button(label="2. Claim Role", style=discord.ButtonStyle.success, custom_id="claim_verify_role", emoji="✅"))
+        final_view.add_item(discord.ui.Button(label="Verify Here", style=discord.ButtonStyle.link, url=url, emoji="✅"))
 
         await self.target_channel.send(embed=final_embed, view=final_view)
         await interaction.response.edit_message(content=f"✅ Setup Complete! Panel sent to {self.target_channel.mention}", embeds=[], view=None)
@@ -145,32 +142,6 @@ class Recovery(commands.Cog):
         return ctx.author.id in self.get_guild_config(ctx.guild.id)["whitelist"]
 
     # ==========================================
-    # 🔘 INSTANT CLAIM ROLE BUTTON LISTENER
-    # ==========================================
-    @commands.Cog.listener()
-    async def on_interaction(self, interaction: discord.Interaction):
-        if interaction.type == discord.InteractionType.component:
-            if interaction.data.get("custom_id") == "claim_verify_role":
-                self._load_dbs()
-                if str(interaction.user.id) in self.tokens:
-                    cfg = self.get_guild_config(interaction.guild.id)
-                    role_id = cfg.get("verify_role")
-                    if role_id:
-                        role = interaction.guild.get_role(role_id)
-                        if role:
-                            try:
-                                await interaction.user.add_roles(role)
-                                await interaction.response.send_message("✅ Verified successfully! You have been granted access.", ephemeral=True)
-                            except:
-                                await interaction.response.send_message("❌ Error: I lack permission to give you the role. Please ask an admin.", ephemeral=True)
-                        else:
-                            await interaction.response.send_message("❌ Error: The verified role has been deleted.", ephemeral=True)
-                    else:
-                        await interaction.response.send_message("❌ Error: Server has no verified role set up.", ephemeral=True)
-                else:
-                    await interaction.response.send_message("❌ You haven't verified yet! Click the **Verify Here** link first, authorize the bot, then click this button again.", ephemeral=True)
-
-    # ==========================================
     # ⚡ STICKY VERIFIED ROLE (INSTANT JOIN)
     # ==========================================
     @commands.Cog.listener()
@@ -188,7 +159,7 @@ class Recovery(commands.Cog):
     # ==========================================
     # 🔄 AUTO ROLE ASSIGNER (BACKGROUND TASK)
     # ==========================================
-    @tasks.loop(seconds=15)
+    @tasks.loop(seconds=5)
     async def auto_verify_loop(self):
         try:
             self._load_dbs()
