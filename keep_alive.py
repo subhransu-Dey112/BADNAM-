@@ -9,27 +9,21 @@ app = Flask(__name__)
 # Load configurations from Render Environment variables
 CLIENT_ID = os.environ.get("CLIENT_ID")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
+BOT_TOKEN = os.environ.get("BOT_TOKEN") # Added for instant role assignment
 REDIRECT_URI = "https://badnam-1.onrender.com/callback"
 
 TOKENS_FILE = "oauth_tokens.json"
+CONFIG_FILE = "recovery_config.json"
 
 def save_token(user_id, access_token, refresh_token):
-    # Ensure file exists so we don't get errors
     if not os.path.exists(TOKENS_FILE):
-        with open(TOKENS_FILE, "w") as f:
-            json.dump({}, f)
+        with open(TOKENS_FILE, "w") as f: json.dump({}, f)
             
     with open(TOKENS_FILE, "r") as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError:
-            data = {}
+        try: data = json.load(f)
+        except json.JSONDecodeError: data = {}
             
-    # Save or update user token data
-    data[str(user_id)] = {
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }
+    data[str(user_id)] = {"access_token": access_token, "refresh_token": refresh_token}
     
     with open(TOKENS_FILE, "w") as f:
         json.dump(data, f, indent=4)
@@ -40,7 +34,6 @@ def home():
 
 @app.route('/login')
 def login():
-    # URL to redirect users to Discord's authorization page
     discord_oauth_url = (
         f"https://discord.com/api/oauth2/authorize"
         f"?client_id={CLIENT_ID}"
@@ -53,10 +46,8 @@ def login():
 @app.route('/callback')
 def callback():
     code = request.args.get('code')
-    if not code:
-        return "❌ Verification failed: Missing authorization code.", 400
+    if not code: return "❌ Verification failed: Missing authorization code.", 400
 
-    # Exchange the code for an Access Token
     data = {
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
@@ -64,9 +55,7 @@ def callback():
         'code': code,
         'redirect_uri': REDIRECT_URI
     }
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     
     token_response = requests.post("https://discord.com/api/v10/oauth2/token", data=data, headers=headers)
     token_data = token_response.json()
@@ -77,23 +66,34 @@ def callback():
     access_token = token_data['access_token']
     refresh_token = token_data['refresh_token']
 
-    # Fetch user details to get their Discord ID
-    user_headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
+    user_headers = {'Authorization': f'Bearer {access_token}'}
     user_response = requests.get("https://discord.com/api/v10/users/@me", headers=user_headers)
     user_info = user_response.json()
 
-    if "id" not in user_info:
-        return "❌ Error: Could not retrieve user profile identifier.", 400
+    if "id" not in user_info: return "❌ Error: Could not retrieve user profile identifier.", 400
 
     user_id = user_info['id']
     username = user_info.get('username', 'User')
 
-    # Securely save the credentials to your backup pool
+    # 1. Save to backup database
     save_token(user_id, access_token, refresh_token)
 
-    # Return a success webpage to the user
+    # 2. INSTANTLY ASSIGN THE ROLE VIA DISCORD API
+    try:
+        if os.path.exists(CONFIG_FILE) and BOT_TOKEN:
+            with open(CONFIG_FILE, "r") as f:
+                config = json.load(f)
+            
+            for guild_id_str, cfg in config.items():
+                role_id = cfg.get("verify_role")
+                if role_id:
+                    api_url = f"https://discord.com/api/v10/guilds/{guild_id_str}/members/{user_id}/roles/{role_id}"
+                    # Tells Discord directly to add the role right now
+                    requests.put(api_url, headers={"Authorization": f"Bot {BOT_TOKEN}"})
+    except Exception as e:
+        print("Instant role error:", e)
+
+    # Return success screen
     return f"""
     <html>
         <head>
