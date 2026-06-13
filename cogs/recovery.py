@@ -55,7 +55,8 @@ class SetupConfigView(discord.ui.View):
 
         verify_view = discord.ui.View()
         url = f"https://badnam-1.onrender.com/login"
-        verify_view.add_item(discord.ui.Button(label="Verify", style=discord.ButtonStyle.link, url=url, emoji="✅"))
+        verify_view.add_item(discord.ui.Button(label="1. Verify Here", style=discord.ButtonStyle.link, url=url, emoji="🔗"))
+        verify_view.add_item(discord.ui.Button(label="2. Claim Role", style=discord.ButtonStyle.success, custom_id="claim_verify_role", emoji="✅"))
 
         await interaction.response.edit_message(embeds=[preview_embed, interaction.message.embeds[1]], view=self)
 
@@ -77,9 +78,11 @@ class SetupConfigView(discord.ui.View):
         if cfg["embed_image"].startswith("http"):
             final_embed.set_image(url=cfg["embed_image"])
 
-        final_view = discord.ui.View()
+        # Create persistent view for final dispatch
+        final_view = discord.ui.View(timeout=None)
         url = f"https://badnam-1.onrender.com/login"
-        final_view.add_item(discord.ui.Button(label="Verify", style=discord.ButtonStyle.link, url=url, emoji="✅"))
+        final_view.add_item(discord.ui.Button(label="1. Verify Here", style=discord.ButtonStyle.link, url=url, emoji="🔗"))
+        final_view.add_item(discord.ui.Button(label="2. Claim Role", style=discord.ButtonStyle.success, custom_id="claim_verify_role", emoji="✅"))
 
         await self.target_channel.send(embed=final_embed, view=final_view)
         await interaction.response.edit_message(content=f"✅ Setup Complete! Panel sent to {self.target_channel.mention}", embeds=[], view=None)
@@ -142,46 +145,68 @@ class Recovery(commands.Cog):
         return ctx.author.id in self.get_guild_config(ctx.guild.id)["whitelist"]
 
     # ==========================================
+    # 🔘 INSTANT CLAIM ROLE BUTTON LISTENER
+    # ==========================================
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction: discord.Interaction):
+        if interaction.type == discord.InteractionType.component:
+            if interaction.data.get("custom_id") == "claim_verify_role":
+                self._load_dbs()
+                if str(interaction.user.id) in self.tokens:
+                    cfg = self.get_guild_config(interaction.guild.id)
+                    role_id = cfg.get("verify_role")
+                    if role_id:
+                        role = interaction.guild.get_role(role_id)
+                        if role:
+                            try:
+                                await interaction.user.add_roles(role)
+                                await interaction.response.send_message("✅ Verified successfully! You have been granted access.", ephemeral=True)
+                            except:
+                                await interaction.response.send_message("❌ Error: I lack permission to give you the role. Please ask an admin.", ephemeral=True)
+                        else:
+                            await interaction.response.send_message("❌ Error: The verified role has been deleted.", ephemeral=True)
+                    else:
+                        await interaction.response.send_message("❌ Error: Server has no verified role set up.", ephemeral=True)
+                else:
+                    await interaction.response.send_message("❌ You haven't verified yet! Click the **Verify Here** link first, authorize the bot, then click this button again.", ephemeral=True)
+
+    # ==========================================
     # ⚡ STICKY VERIFIED ROLE (INSTANT JOIN)
     # ==========================================
     @commands.Cog.listener()
     async def on_member_join(self, member):
         self._load_dbs()
-        # If user is in database, give them the verified role instantly upon joining
         if str(member.id) in self.tokens:
             cfg = self.get_guild_config(member.guild.id)
             role_id = cfg.get("verify_role")
             if role_id:
                 role = member.guild.get_role(role_id)
                 if role:
-                    try:
-                        await member.add_roles(role)
-                    except:
-                        pass
+                    try: await member.add_roles(role)
+                    except: pass
 
     # ==========================================
     # 🔄 AUTO ROLE ASSIGNER (BACKGROUND TASK)
     # ==========================================
-    @tasks.loop(seconds=10)
+    @tasks.loop(seconds=15)
     async def auto_verify_loop(self):
-        self._load_dbs()
-        for guild_id_str, cfg in self.config.items():
-            role_id = cfg.get("verify_role")
-            if not role_id: continue
-            
-            guild = self.bot.get_guild(int(guild_id_str))
-            if not guild: continue
-            
-            role = guild.get_role(role_id)
-            if not role: continue
+        try:
+            self._load_dbs()
+            for guild_id_str, cfg in self.config.items():
+                role_id = cfg.get("verify_role")
+                if not role_id: continue
+                guild = self.bot.get_guild(int(guild_id_str))
+                if not guild: continue
+                role = guild.get_role(role_id)
+                if not role: continue
 
-            for user_id in self.tokens.keys():
-                member = guild.get_member(int(user_id))
-                if member and role not in member.roles:
-                    try:
-                        await member.add_roles(role)
-                    except:
-                        pass
+                for user_id in list(self.tokens.keys()):
+                    member = guild.get_member(int(user_id))
+                    if member and role not in member.roles:
+                        try: await member.add_roles(role)
+                        except: pass
+        except Exception:
+            pass
 
     @auto_verify_loop.before_loop
     async def before_auto_verify(self):
@@ -291,9 +316,8 @@ class Recovery(commands.Cog):
                 async with session.put(url, headers=headers, json=body) as resp:
                     if resp.status in [201, 204]:
                         success += 1
-                        await asyncio.sleep(1) # Wait for Discord API to register them
+                        await asyncio.sleep(1)
                         try:
-                            # Force fetch the user from API just in case cache is slow
                             member = ctx.guild.get_member(int(user_id)) or await ctx.guild.fetch_member(int(user_id))
                             if member:
                                 role = ctx.guild.get_role(role_id)
