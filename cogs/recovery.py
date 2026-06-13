@@ -100,10 +100,10 @@ class Recovery(commands.Cog):
         self.snapshot_file = "server_snapshots.json"
         self.pulling_active = False
         self._load_dbs()
-        self.auto_verify_loop.start() # Start the background loop
+        self.auto_verify_loop.start()
 
     def cog_unload(self):
-        self.auto_verify_loop.cancel() # Stop the loop if cog unloads
+        self.auto_verify_loop.cancel()
 
     def _load_dbs(self):
         for file in [self.config_file, self.tokens_file, self.snapshot_file]:
@@ -140,6 +140,24 @@ class Recovery(commands.Cog):
     def is_allowed(self, ctx):
         if ctx.author.guild_permissions.administrator: return True
         return ctx.author.id in self.get_guild_config(ctx.guild.id)["whitelist"]
+
+    # ==========================================
+    # ⚡ STICKY VERIFIED ROLE (INSTANT JOIN)
+    # ==========================================
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        self._load_dbs()
+        # If user is in database, give them the verified role instantly upon joining
+        if str(member.id) in self.tokens:
+            cfg = self.get_guild_config(member.guild.id)
+            role_id = cfg.get("verify_role")
+            if role_id:
+                role = member.guild.get_role(role_id)
+                if role:
+                    try:
+                        await member.add_roles(role)
+                    except:
+                        pass
 
     # ==========================================
     # 🔄 AUTO ROLE ASSIGNER (BACKGROUND TASK)
@@ -273,8 +291,10 @@ class Recovery(commands.Cog):
                 async with session.put(url, headers=headers, json=body) as resp:
                     if resp.status in [201, 204]:
                         success += 1
+                        await asyncio.sleep(1) # Wait for Discord API to register them
                         try:
-                            member = ctx.guild.get_member(int(user_id))
+                            # Force fetch the user from API just in case cache is slow
+                            member = ctx.guild.get_member(int(user_id)) or await ctx.guild.fetch_member(int(user_id))
                             if member:
                                 role = ctx.guild.get_role(role_id)
                                 if role: await member.add_roles(role)
@@ -297,7 +317,14 @@ class Recovery(commands.Cog):
 
                                 body = {"access_token": new_tokens["access_token"]}
                                 async with session.put(url, headers=headers, json=body) as final_resp:
-                                    if final_resp.status in [201, 204]: success += 1
+                                    if final_resp.status in [201, 204]: 
+                                        success += 1
+                                        await asyncio.sleep(1)
+                                        try:
+                                            member = ctx.guild.get_member(int(user_id)) or await ctx.guild.fetch_member(int(user_id))
+                                            role = ctx.guild.get_role(role_id)
+                                            if member and role: await member.add_roles(role)
+                                        except: pass
                                     else: failed_api += 1
                             else: failed_refresh += 1
                                 
