@@ -1,16 +1,16 @@
-import discord
-from discord.ext import commands
 import os
-import asyncio
 import sys
+import subprocess
 
-# Pre-flight check to debug why libraries are not loading
+# Force-install PyNaCl if missing
 try:
     import nacl
-    print(f"✅ PyNaCl found at: {nacl.__file__}")
 except ImportError:
-    print("❌ CRITICAL: PyNaCl is not installed or importable.")
+    print("⚠️ PyNaCl missing. Attempting force-install...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pynacl"])
 
+import discord
+from discord.ext import commands
 from keep_alive import keep_alive
 
 intents = discord.Intents.all()
@@ -26,9 +26,6 @@ async def setup_hook():
             print(f"✅ Loaded {ext}")
         except Exception as e:
             print(f"❌ Failed to load {ext}: {e}")
-            # This will show the exact line number where the music cog fails
-            import traceback
-            traceback.print_exc()
 
 @bot.event
 async def on_ready():
@@ -38,11 +35,9 @@ async def on_ready():
 async def main():
     keep_alive()
     token = os.environ.get("BOT_TOKEN")
-    if not token:
-        print("❌ ERROR: BOT_TOKEN is missing!")
-        return
     async with bot:
         await bot.start(token)
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
