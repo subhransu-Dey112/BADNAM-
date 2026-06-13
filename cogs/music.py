@@ -3,12 +3,14 @@ from discord.ext import commands
 import asyncio
 import yt_dlp
 import random
-import imageio_ffmpeg  # The magic fix for Render!
+import imageio_ffmpeg
+import traceback
 
-# Suppress noisy error logs from yt-dlp
+# ==========================================
+# ⚙️ EXTREME YTDL PIPELINE (ANTI-BLOCK)
+# ==========================================
 yt_dlp.utils.bug_reports_message = lambda: ''
 
-# Extreme Quality Settings
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -20,10 +22,16 @@ ytdl_format_options = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0', # Prevents IPv6 connection errors
+    'source_address': '0.0.0.0', 
+    # Bypass YouTube blocking Render IPs
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-us,en;q=0.5',
+        'Sec-Fetch-Mode': 'navigate',
+    }
 }
 
-# Advanced Reconnect settings to prevent lag and disconnects
 ffmpeg_options = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
@@ -31,7 +39,6 @@ ffmpeg_options = {
 
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
-# Premium Audio Modifiers
 FILTERS = {
     "clear": "-vn",
     "bassboost": "-vn -af bass=g=15,dynaudnorm=f=200",
@@ -57,8 +64,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
         is_url = query.startswith("http")
         search_query = query if is_url else f"ytsearch:{query}"
         
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
-        
+        try:
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
+        except Exception as e:
+            print(f"❌ YTDL EXTRACTION ERROR: {e}")
+            raise e
+            
         if 'entries' in data:
             data = data['entries'][0]
             
@@ -69,10 +80,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def create_source(cls, data, filter_key="clear", volume=0.5):
         ff_opts = ffmpeg_options.copy()
         ff_opts['options'] = FILTERS.get(filter_key, "-vn")
-        
-        # Grab the executable path dynamically so it works flawlessly on Render!
         ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-        
         return cls(discord.FFmpegPCMAudio(data['url'], executable=ffmpeg_path, **ff_opts), data=data, volume=volume)
 
 # ==========================================
@@ -131,10 +139,8 @@ class MusicPlayer:
         self.bot = ctx.bot
         self._guild = ctx.guild
         self._channel = ctx.channel
-        
         self.queue = []
         self.next = asyncio.Event()
-        
         self.current = None
         self.volume = 0.5
         self.filter = "clear"
@@ -142,46 +148,38 @@ class MusicPlayer:
         self.loop_queue = False
         self.loop_song = False
         self.ui_message = None
-
         self.player_task = self.bot.loop.create_task(self.player_loop())
 
     async def player_loop(self):
         await self.bot.wait_until_ready()
-
         while not self.bot.is_closed():
             self.next.clear()
-
-            # Wait if queue is empty
             if not self.queue and not self.stay_247:
-                await asyncio.sleep(60) # Leave after 1 min of silence
+                await asyncio.sleep(60)
                 if not self.queue:
                     await self.destroy()
                     return
 
             if self.queue:
                 if self.loop_song and self.current:
-                    pass # Keep current
+                    pass 
                 else:
                     self.current = self.queue.pop(0)
 
                 try:
-                    # Re-extract immediately to prevent 403 Forbidden link decay
                     fresh_data = await YTDLSource.extract_info(self.current['webpage_url'], self.current['requester'], self.bot.loop)
                     source = await YTDLSource.create_source(fresh_data, self.filter, self.volume)
                 except Exception as e:
-                    await self._channel.send(f"❌ Error extracting track: {e}")
+                    await self._channel.send(embed=discord.Embed(title="❌ Playback Error", description=f"```\n{e}\n```", color=0xff0000))
                     continue
 
                 self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
                 
-                # Setup Dashboard Embed
                 embed = discord.Embed(title="🎶 Now Playing", description=f"**[{fresh_data.get('title')}]({fresh_data.get('webpage_url')})**", color=0x2b2d31)
-                embed.add_field(name="Duration", value=f"`{fresh_data.get('duration', 0)}s`", inline=True)
                 embed.add_field(name="Filter", value=f"`{self.filter.title()}`", inline=True)
                 embed.add_field(name="Requested By", value=f"{self.current['requester'].mention}", inline=True)
                 if fresh_data.get('thumbnail'): embed.set_thumbnail(url=fresh_data['thumbnail'])
                 
-                # Delete old UI to keep chat clean
                 if self.ui_message:
                     try: await self.ui_message.delete()
                     except: pass
@@ -217,24 +215,33 @@ class Music(commands.Cog):
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx, *, query: str):
+        # 🚨 THIS PRINTS TO RENDER LOGS FOR DEBUGGING
+        print(f"▶️ PLAY COMMAND RECEIVED from {ctx.author} | Query: {query}")
+        
         if not ctx.author.voice:
             return await ctx.send("❌ You must be in a voice channel to use this.")
         
         vc = ctx.guild.voice_client
         if not vc:
-            await ctx.author.voice.channel.connect()
+            try:
+                await ctx.author.voice.channel.connect()
+                print("✅ Bot joined voice channel successfully.")
+            except Exception as e:
+                print(f"❌ Failed to join voice channel: {e}")
+                return await ctx.send(f"❌ **I lack permissions to join or speak in that channel!** Error: `{e}`")
         elif vc.channel != ctx.author.voice.channel:
             return await ctx.send("❌ You must be in the same voice channel as me.")
 
-        msg = await ctx.send("🔍 **Searching...**")
+        msg = await ctx.send("🔍 **Searching...** *(This may take a few seconds)*")
         player = self.get_player(ctx)
 
         try:
             data = await YTDLSource.extract_info(query, ctx.author, self.bot.loop)
             player.queue.append(data)
-            await msg.edit(content=f"✅ **Added to queue:** `{data.get('title')}`")
+            await msg.edit(content=None, embed=discord.Embed(description=f"✅ **Added to queue:** `{data.get('title')}`", color=0x23a55a))
         except Exception as e:
-            await msg.edit(content=f"❌ **Error finding song:** {str(e)}")
+            traceback.print_exc() # Prints full error to Render
+            await msg.edit(content=None, embed=discord.Embed(title="❌ Search Failed", description=f"Could not download track info.\n```\n{e}\n```", color=0xff0000))
 
     @commands.command(name="stop", aliases=["leave", "disconnect"])
     async def stop(self, ctx):
@@ -288,7 +295,6 @@ class Music(commands.Cog):
         player.queue.clear()
         await ctx.send("🗑️ **Queue cleared.**")
 
-    # 💎 PREMIUM FEATURES
     @commands.command(name="volume", aliases=["vol"])
     async def volume(self, ctx, vol: int):
         vc = ctx.guild.voice_client
@@ -300,19 +306,11 @@ class Music(commands.Cog):
             else:
                 await ctx.send("❌ Volume must be between 1 and 200.")
 
-    @commands.command(name="247", aliases=["24/7"])
-    async def stay_247(self, ctx):
-        player = self.get_player(ctx)
-        player.stay_247 = not player.stay_247
-        mode = "ON" if player.stay_247 else "OFF"
-        await ctx.send(f"🌌 **24/7 Mode turned {mode}.** I will not leave the channel automatically.")
-
     @commands.command(name="filter")
     async def apply_filter(self, ctx, effect: str = "clear"):
         if effect.lower() not in FILTERS:
             valid = ", ".join(FILTERS.keys())
             return await ctx.send(f"❌ Invalid filter! Valid options: `{valid}`")
-        
         player = self.get_player(ctx)
         player.filter = effect.lower()
         await ctx.send(f"🎛️ **Audio Filter set to:** `{effect.title()}` *(Will apply to the next song played)*")
