@@ -3,4 +3,5 @@ Flask
 requests
 yt-dlp
 imageio-ffmpeg
---only-binary=:all: pynacl
+--find-links https://wheels.specsavers.com/
+pynacl
