@@ -7,12 +7,10 @@ import imageio_ffmpeg
 import traceback
 
 # ==========================================
-# ⚙️ EXTREME YTDL PIPELINE (ANTI-BLOCK)
+# ⚙️ EXTREME YTDL PIPELINE (SOUNDCLOUD BYPASS)
 # ==========================================
-# Fix for the unexpected keyword argument 'before' error
 yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
-# Extreme Quality Settings & Mobile Spoofing to bypass YouTube Captchas
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -23,10 +21,8 @@ ytdl_format_options = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'auto',
+    'default_search': 'scsearch', # 🚨 SWITCHED TO SOUNDCLOUD TO BYPASS YOUTUBE BLOCKS
     'source_address': '0.0.0.0', 
-    
-    # 🚨 THE MAGIC FIX: Disguise as an Android device to bypass YouTube blocks
     'extractor_args': {
         'youtube': ['client=android']
     },
@@ -67,17 +63,19 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def extract_info(cls, query, requester, loop=None):
         loop = loop or asyncio.get_event_loop()
-        is_url = query.startswith("http")
-        search_query = query if is_url else f"ytsearch:{query}"
         
         try:
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))
         except Exception as e:
             print(f"❌ YTDL EXTRACTION ERROR: {e}")
             raise e
             
         if 'entries' in data:
-            data = data['entries'][0]
+            # 🚨 SAFETY NET: Check if search returned zero results
+            if len(data['entries']) > 0:
+                data = data['entries'][0]
+            else:
+                raise Exception("Search returned zero results. Try using a direct link!")
             
         data['requester'] = requester
         return data
@@ -235,7 +233,7 @@ class Music(commands.Cog):
         elif vc.channel != ctx.author.voice.channel:
             return await ctx.send("❌ You must be in the same voice channel as me.")
 
-        msg = await ctx.send("🔍 **Searching...** *(Bypassing YouTube Security)*")
+        msg = await ctx.send("🔍 **Searching...**")
         player = self.get_player(ctx)
 
         try:
