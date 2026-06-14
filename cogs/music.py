@@ -7,7 +7,7 @@ import imageio_ffmpeg
 import traceback
 
 # ==========================================
-# ⚙️ EXTREME YTDL PIPELINE (YOUTUBE MUSIC FORCE-PREFIX)
+# ⚙️ EXTREME YTDL PIPELINE (ANDROID MUSIC BYPASS)
 # ==========================================
 yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
@@ -21,12 +21,11 @@ ytdl_format_options = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    # 🚨 Reverted to auto so it doesn't crash urllib
     'default_search': 'auto', 
     'source_address': '0.0.0.0', 
-    # Bypass tools
+    # 🚨 THE FIX: Standard YouTube search but disguised as Android Music App
     'extractor_args': {
-        'youtube': ['client=android']
+        'youtube': ['player_client=android', 'client=android_music']
     },
     'http_headers': {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
@@ -64,8 +63,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         is_url = query.startswith("http")
         
-        # 🚨 THE FIX: Explicitly force YouTube Music via string prefix
-        search_query = query if is_url else f"ytmsearch:{query}"
+        # Back to standard ytsearch so it doesn't crash the URL reader
+        search_query = query if is_url else f"ytsearch:{query}"
         
         try:
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
@@ -77,7 +76,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             if len(data['entries']) > 0:
                 data = data['entries'][0]
             else:
-                raise Exception("Search returned zero results. Try using a direct link!")
+                raise Exception("Search returned zero results. Try a direct link!")
             
         data['requester'] = requester
         return data
@@ -89,9 +88,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
         return cls(discord.FFmpegPCMAudio(data['url'], executable=ffmpeg_path, **ff_opts), data=data, volume=volume)
 
-# ==========================================
-# 🎛️ THE INTERACTIVE DASHBOARD VIEW
-# ==========================================
 class PlayerControls(discord.ui.View):
     def __init__(self, player):
         super().__init__(timeout=None)
@@ -137,9 +133,6 @@ class PlayerControls(discord.ui.View):
         if vc: vc.stop()
         await interaction.response.defer()
 
-# ==========================================
-# 🧠 THE BRAIN: MUSIC PLAYER INSTANCE
-# ==========================================
 class MusicPlayer:
     def __init__(self, ctx):
         self.bot = ctx.bot
@@ -176,7 +169,8 @@ class MusicPlayer:
                     fresh_data = await YTDLSource.extract_info(self.current['webpage_url'], self.current['requester'], self.bot.loop)
                     source = await YTDLSource.create_source(fresh_data, self.filter, self.volume)
                 except Exception as e:
-                    await self._channel.send(embed=discord.Embed(title="❌ Playback Error", description=f"```\n{e}\n```", color=0xff0000))
+                    await self._channel.send(embed=discord.Embed(title="❌ Playback Error", description=f"```\n{e}\n
+```", color=0xff0000))
                     continue
 
                 self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
@@ -206,9 +200,6 @@ class MusicPlayer:
             except: pass
         self.bot.get_cog("Music").players.pop(self._guild.id, None)
 
-# ==========================================
-# ⚙️ THE COG: ALL COMMANDS
-# ==========================================
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -221,21 +212,19 @@ class Music(commands.Cog):
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx, *, query: str):
-        print(f"▶️ PLAY COMMAND RECEIVED from {ctx.author} | Query: {query}")
-        
         if not ctx.author.voice:
-            return await ctx.send("❌ You must be in a voice channel to use this.")
+            return await ctx.send("❌ You must be in a voice channel.")
         
         vc = ctx.guild.voice_client
         if not vc:
             try:
                 await ctx.author.voice.channel.connect()
             except Exception as e:
-                return await ctx.send(f"❌ **I lack permissions to join or speak in that channel!** Error: `{e}`")
+                return await ctx.send(f"❌ **Error joining:** `{e}`")
         elif vc.channel != ctx.author.voice.channel:
-            return await ctx.send("❌ You must be in the same voice channel as me.")
+            return await ctx.send("❌ We must be in the same channel.")
 
-        msg = await ctx.send("🔍 **Searching YouTube Music...**")
+        msg = await ctx.send("🔍 **Searching...**")
         player = self.get_player(ctx)
 
         try:
@@ -244,15 +233,15 @@ class Music(commands.Cog):
             await msg.edit(content=None, embed=discord.Embed(description=f"✅ **Added to queue:** `{data.get('title')}`", color=0x23a55a))
         except Exception as e:
             traceback.print_exc()
-            await msg.edit(content=None, embed=discord.Embed(title="❌ Search Failed", description=f"Could not download track info.\n```\n{e}\n```", color=0xff0000))
+            await msg.edit(content=None, embed=discord.Embed(title="❌ Search Failed", description=f"```\n{e}\n```", color=0xff0000))
 
-    @commands.command(name="stop", aliases=["leave", "disconnect"])
+    @commands.command(name="stop", aliases=["leave"])
     async def stop(self, ctx):
         if ctx.guild.id in self.players:
             player = self.players[ctx.guild.id]
             player.queue.clear()
             await player.destroy()
-            await ctx.send("🛑 **Music stopped and queue cleared. Leaving voice channel.**")
+            await ctx.send("🛑 **Stopped.**")
         else:
             if ctx.guild.voice_client: await ctx.guild.voice_client.disconnect()
 
@@ -263,60 +252,18 @@ class Music(commands.Cog):
             vc.stop()
             await ctx.send("⏭️ **Skipped.**")
 
-    @commands.command(name="pause")
-    async def pause(self, ctx):
-        vc = ctx.guild.voice_client
-        if vc and vc.is_playing():
-            vc.pause()
-            await ctx.send("⏸️ **Paused.**")
-
-    @commands.command(name="resume")
-    async def resume(self, ctx):
-        vc = ctx.guild.voice_client
-        if vc and vc.is_paused():
-            vc.resume()
-            await ctx.send("▶️ **Resumed.**")
-
     @commands.command(name="queue", aliases=["q"])
     async def queue(self, ctx):
         player = self.get_player(ctx)
         if not player.queue:
-            return await ctx.send("📭 **The queue is currently empty.**")
+            return await ctx.send("📭 **Empty queue.**")
         
         desc = ""
         for i, track in enumerate(player.queue[:10]):
             desc += f"**{i+1}.** [{track.get('title')}]({track.get('webpage_url')})\n"
         
-        embed = discord.Embed(title="📜 Current Queue", description=desc, color=0x2b2d31)
-        if len(player.queue) > 10:
-            embed.set_footer(text=f"And {len(player.queue) - 10} more songs...")
+        embed = discord.Embed(title="📜 Queue", description=desc, color=0x2b2d31)
         await ctx.send(embed=embed)
-
-    @commands.command(name="clear")
-    async def clear(self, ctx):
-        player = self.get_player(ctx)
-        player.queue.clear()
-        await ctx.send("🗑️ **Queue cleared.**")
-
-    @commands.command(name="volume", aliases=["vol"])
-    async def volume(self, ctx, vol: int):
-        vc = ctx.guild.voice_client
-        if vc and vc.source:
-            if 1 <= vol <= 200:
-                vc.source.volume = vol / 100
-                self.get_player(ctx).volume = vol / 100
-                await ctx.send(f"🔊 **Volume changed to {vol}%**")
-            else:
-                await ctx.send("❌ Volume must be between 1 and 200.")
-
-    @commands.command(name="filter")
-    async def apply_filter(self, ctx, effect: str = "clear"):
-        if effect.lower() not in FILTERS:
-            valid = ", ".join(FILTERS.keys())
-            return await ctx.send(f"❌ Invalid filter! Valid options: `{valid}`")
-        player = self.get_player(ctx)
-        player.filter = effect.lower()
-        await ctx.send(f"🎛️ **Audio Filter set to:** `{effect.title()}` *(Will apply to the next song played)*")
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
