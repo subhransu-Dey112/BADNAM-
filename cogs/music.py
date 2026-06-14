@@ -9,8 +9,10 @@ import traceback
 # ==========================================
 # ⚙️ EXTREME YTDL PIPELINE (ANTI-BLOCK)
 # ==========================================
+# Fix for the unexpected keyword argument 'before' error
 yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
+# Extreme Quality Settings & Mobile Spoofing to bypass YouTube Captchas
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -23,9 +25,13 @@ ytdl_format_options = {
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0', 
-    # Bypass YouTube blocking Render IPs
+    
+    # 🚨 THE MAGIC FIX: Disguise as an Android device to bypass YouTube blocks
+    'extractor_args': {
+        'youtube': ['client=android']
+    },
     'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-us,en;q=0.5',
         'Sec-Fetch-Mode': 'navigate',
@@ -215,7 +221,6 @@ class Music(commands.Cog):
 
     @commands.command(name="play", aliases=["p"])
     async def play(self, ctx, *, query: str):
-        # 🚨 THIS PRINTS TO RENDER LOGS FOR DEBUGGING
         print(f"▶️ PLAY COMMAND RECEIVED from {ctx.author} | Query: {query}")
         
         if not ctx.author.voice:
@@ -225,14 +230,12 @@ class Music(commands.Cog):
         if not vc:
             try:
                 await ctx.author.voice.channel.connect()
-                print("✅ Bot joined voice channel successfully.")
             except Exception as e:
-                print(f"❌ Failed to join voice channel: {e}")
                 return await ctx.send(f"❌ **I lack permissions to join or speak in that channel!** Error: `{e}`")
         elif vc.channel != ctx.author.voice.channel:
             return await ctx.send("❌ You must be in the same voice channel as me.")
 
-        msg = await ctx.send("🔍 **Searching...** *(This may take a few seconds)*")
+        msg = await ctx.send("🔍 **Searching...** *(Bypassing YouTube Security)*")
         player = self.get_player(ctx)
 
         try:
@@ -240,7 +243,7 @@ class Music(commands.Cog):
             player.queue.append(data)
             await msg.edit(content=None, embed=discord.Embed(description=f"✅ **Added to queue:** `{data.get('title')}`", color=0x23a55a))
         except Exception as e:
-            traceback.print_exc() # Prints full error to Render
+            traceback.print_exc()
             await msg.edit(content=None, embed=discord.Embed(title="❌ Search Failed", description=f"Could not download track info.\n```\n{e}\n```", color=0xff0000))
 
     @commands.command(name="stop", aliases=["leave", "disconnect"])
