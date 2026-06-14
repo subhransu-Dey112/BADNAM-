@@ -7,7 +7,7 @@ import imageio_ffmpeg
 import traceback
 
 # ==========================================
-# ⚙️ EXTREME YTDL PIPELINE (YOUTUBE MUSIC BYPASS)
+# ⚙️ EXTREME YTDL PIPELINE (YOUTUBE MUSIC FORCE-PREFIX)
 # ==========================================
 yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
@@ -21,11 +21,15 @@ ytdl_format_options = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    # 🚨 SWITCHED TO YOUTUBE MUSIC TO BYPASS CAPTCHAS & BROKEN SC API
-    'default_search': 'ytmsearch', 
+    # 🚨 Reverted to auto so it doesn't crash urllib
+    'default_search': 'auto', 
     'source_address': '0.0.0.0', 
+    # Bypass tools
+    'extractor_args': {
+        'youtube': ['client=android']
+    },
     'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
     }
 }
 
@@ -58,9 +62,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def extract_info(cls, query, requester, loop=None):
         loop = loop or asyncio.get_event_loop()
+        is_url = query.startswith("http")
+        
+        # 🚨 THE FIX: Explicitly force YouTube Music via string prefix
+        search_query = query if is_url else f"ytmsearch:{query}"
         
         try:
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
         except Exception as e:
             print(f"❌ YTDL EXTRACTION ERROR: {e}")
             raise e
