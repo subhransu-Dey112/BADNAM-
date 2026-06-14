@@ -23,7 +23,6 @@ ytdl_format_options = {
     'no_warnings': True,
     'default_search': 'auto', 
     'source_address': '0.0.0.0', 
-    # 🚨 THE FIX: Standard YouTube search but disguised as Android Music App
     'extractor_args': {
         'youtube': ['player_client=android', 'client=android_music']
     },
@@ -62,8 +61,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def extract_info(cls, query, requester, loop=None):
         loop = loop or asyncio.get_event_loop()
         is_url = query.startswith("http")
-        
-        # Back to standard ytsearch so it doesn't crash the URL reader
         search_query = query if is_url else f"ytsearch:{query}"
         
         try:
@@ -169,8 +166,7 @@ class MusicPlayer:
                     fresh_data = await YTDLSource.extract_info(self.current['webpage_url'], self.current['requester'], self.bot.loop)
                     source = await YTDLSource.create_source(fresh_data, self.filter, self.volume)
                 except Exception as e:
-                    await self._channel.send(embed=discord.Embed(title="❌ Playback Error", description=f"```\n{e}\n
-```", color=0xff0000))
+                    await self._channel.send(embed=discord.Embed(title="❌ Playback Error", description=f"```\n{e}\n```", color=0xff0000))
                     continue
 
                 self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
