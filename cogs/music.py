@@ -7,7 +7,7 @@ import imageio_ffmpeg
 import traceback
 
 # ==========================================
-# ⚙️ EXTREME YTDL PIPELINE (SOUNDCLOUD BYPASS)
+# ⚙️ EXTREME YTDL PIPELINE (YOUTUBE MUSIC BYPASS)
 # ==========================================
 yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
@@ -21,16 +21,11 @@ ytdl_format_options = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'scsearch', # 🚨 SWITCHED TO SOUNDCLOUD TO BYPASS YOUTUBE BLOCKS
+    # 🚨 SWITCHED TO YOUTUBE MUSIC TO BYPASS CAPTCHAS & BROKEN SC API
+    'default_search': 'ytmsearch', 
     'source_address': '0.0.0.0', 
-    'extractor_args': {
-        'youtube': ['client=android']
-    },
     'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-us,en;q=0.5',
-        'Sec-Fetch-Mode': 'navigate',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
 }
 
@@ -71,7 +66,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
             raise e
             
         if 'entries' in data:
-            # 🚨 SAFETY NET: Check if search returned zero results
             if len(data['entries']) > 0:
                 data = data['entries'][0]
             else:
@@ -233,7 +227,7 @@ class Music(commands.Cog):
         elif vc.channel != ctx.author.voice.channel:
             return await ctx.send("❌ You must be in the same voice channel as me.")
 
-        msg = await ctx.send("🔍 **Searching...**")
+        msg = await ctx.send("🔍 **Searching YouTube Music...**")
         player = self.get_player(ctx)
 
         try:
